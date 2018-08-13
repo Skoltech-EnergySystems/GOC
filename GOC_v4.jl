@@ -421,23 +421,19 @@ setvalue(δ[1:NBus,1:NK], δ0)
 @NLconstraint(PSCOPF, FlowLimits_ji[l=1:NBr,k=1:NK], (pl[links[l][2],links[l][1],k]^2 + ql[links[l][2],links[l][1],k]^2) <= RATE_A[l]^2);
 
 # Generator active power output bound
-Pmin = hcat(Pmin,Pmin);
-Pmax = hcat(Pmax,Pmax);
 # slack bus in node 1
-@constraint(PSCOPF, GenLimitsP[i=1:NBus,k=1:NK], Pmin[i,k] <= p[i,k] <= Pmax[i,k]);
+@constraint(PSCOPF, GenLimitsP[i=1:NBus,k=1:NK], Pmin[i] <= p[i,k] <= Pmax[i]);
 
 # Generator reactive power output bound
-Qmin = hcat(Qmin,Qmin);
-Qmax = hcat(Qmax,Qmax);
 # slack bus in node 1
-@constraint(PSCOPF, GenLimitsQ[i=1:NBus,k=1:NK], Qmin[i,k] <= q[i,k] <= Qmax[i,k]);
+@constraint(PSCOPF, GenLimitsQ[i=1:NBus,k=1:NK], Qmin[i] <= q[i,k] <= Qmax[i]);
 
 # Voltage magnitude limits
 @constraint(PSCOPF, VoltageLimits[i=1:NBus,k=1:NK], Vmin <= V[i,k] <= Vmax);
 
 # Angle limits
 @constraint(PSCOPF, slackBus[k=1:NK], δ[1,k] == 0);
-@constraint(PSCOPF, limitAngle[i=1:NBus,k=1:NK], -pi/2 <= δ[i,k] <= pi/2);
+@constraint(PSCOPF, limitAngle[i=2:NBus,k=1:NK], -pi/2 <= δ[i,k] <= pi/2);
 
 ## Objective function
 @constraint(PSCOPF, ObjectiveFunction, (Cost == sum(a[i]*(p[i])^2 + b[i]*p[i] + c[i]  for i=1:NBus)));
