@@ -3,9 +3,8 @@ using GLPKMathProgInterface;
 using DataFrames, DataArrays, CSV, Ipopt, JuMP, ConditionalJuMP;
 # Preventive Security Constrained Optimal Power Flow
 PSCOPF = Model(solver=IpoptSolver())
-#PSCOPF = Model(solver=CbcSolver())
 #---------------------------------- 1. IMPORTING DATA -----------------------------------#
-cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Phase_0_IEEE14_1Scenario/scenario_1")
+#cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Phase_0_IEEE14_1Scenario/scenario_1")
 all_data=readdlm("pscopf.m",',');
 #Assume that in all files all_busdata will be written on the third row
 # Number of buses in the system
@@ -421,7 +420,7 @@ total_part_factor = sum(part_factor);
 ## resolution
 solve(PSCOPF)
 ############################ OUTPUT FILES ##################################
-cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Code")
+#cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Code")
 # Extracting calculated generation values for base case
 Pgen = [];
 for y in getvalue(p)[:,1]
