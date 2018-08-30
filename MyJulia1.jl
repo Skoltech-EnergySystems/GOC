@@ -1,15 +1,11 @@
 using GLPKMathProgInterface;
 #Grid Optimization Competition
-using DataFrames, DataArrays, CSV, Ipopt;
+using DataFrames, DataArrays, CSV, Ipopt, JuMP, ConditionalJuMP;
 
 function MyJulia1(rawFile, genFile, contFile)
 # Preventive Security Constrained Optimal Power Flow
-println("RAW file: ",rawFile)
-println("gen file: ",genFile)
-println("con file: ",contFile)
 PSCOPF = Model(solver=IpoptSolver())
 #---------------------------------- 1. IMPORTING DATA -----------------------------------#
-#cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Phase_0_IEEE14_1Scenario/scenario_1")
 rawData = readdlm(rawFile,',', skipblanks=false);
 n,m = size(rawData);
 busStartL = 4; # first three lines are headers
