@@ -4,8 +4,8 @@ using DataFrames, DataArrays, CSV, Ipopt, JuMP, ConditionalJuMP;
 
 function MyJulia1(rawFile, genFile, contFile)
 # Preventive Security Constrained Optimal Power Flow
-PSCOPF = Model(solver=IpoptSolver(print_level=0))
-#PSCOPF = Model(solver=IpoptSolver())
+#PSCOPF = Model(solver=IpoptSolver(print_level=0))
+PSCOPF = Model(solver=IpoptSolver())
 #---------------------------------- 1. IMPORTING DATA -----------------------------------#
 rawData = readdlm(rawFile,',', skipblanks=false);
 n,m = size(rawData);
