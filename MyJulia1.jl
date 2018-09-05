@@ -1,6 +1,6 @@
-using GLPKMathProgInterface;
+#using GLPKMathProgInterface; # Chnage to Gurobi
 #Grid Optimization Competition
-using DataFrames, DataArrays, CSV, Ipopt, JuMP, ConditionalJuMP;
+using CSV, Ipopt, JuMP;
 
 function MyJulia1(rawFile, genFile, contFile)
 # Preventive Security Constrained Optimal Power Flow
@@ -214,7 +214,7 @@ part_factor = BLGS[:,25];
 # 6 : RATE A
 # 7 : Kt
 # size of branch matrix
-Br = zeros(size(branchSeg,1)+3,7);
+Br = zeros(size(branchSeg,1)+3,7)
 # From buses
 Br[1:size(branchSeg,1),1] = branchSeg[:,1];
 Br[size(branchSeg,1)+1:size(branchSeg,1)+3,1] = transformerSeg[[1,5,9],1];
@@ -223,25 +223,31 @@ Br[1:size(branchSeg,1),2] = branchSeg[:,2];
 Br[size(branchSeg,1)+1:size(branchSeg,1)+3,2] = transformerSeg[[1,5,9],2];
 # r
 Br[1:size(branchSeg,1),3] = branchSeg[:,4];
-Br[size(branchSeg,1)+1:size(branchSeg,1)+3,3] = transformerSeg[[2,6,10],1];
+Br[size(branchSeg,1)+1:size(branchSeg,1)+3,3] = transformerSeg[[2,6,10],1]
 # x
 Br[1:size(branchSeg,1),4] = branchSeg[:,5];
-Br[size(branchSeg,1)+1:size(branchSeg,1)+3,4] = transformerSeg[[2,6,10],2];
+Br[size(branchSeg,1)+1:size(branchSeg,1)+3,4] = transformerSeg[[2,6,10],2]
 # b
 Br[1:size(branchSeg,1),5] = branchSeg[:,6];
-Br[size(branchSeg,1)+1:size(branchSeg,1)+3,5] = [0.0,0.0,0.0];
+Br[size(branchSeg,1)+1:size(branchSeg,1)+3,5] = [0.0,0.0,0.0]
 # RATE A
-Br[1:size(branchSeg,1),6] = branchSeg[:,7]/baseMVA;
-Br[size(branchSeg,1)+1:size(branchSeg,1)+3,6] = transformerSeg[[2,6,10],3]/baseMVA;
+Br[1:size(branchSeg,1),6] = branchSeg[:,7]/baseMVA
+Br[size(branchSeg,1)+1:size(branchSeg,1)+3,6] = transformerSeg[[2,6,10],3]/baseMVA
 # Kt
-Br[:,7] = ones(size(branchSeg,1)+3);
-Br[size(branchSeg,1)+1:size(branchSeg,1)+3,7] = (transformerSeg[[3,7,11],1]);
+Br[:,7] = ones(size(branchSeg,1)+3)
+Br[size(branchSeg,1)+1:size(branchSeg,1)+3,7] = (transformerSeg[[3,7,11],1])
 
 #_______________________________#3. Solution variables#________________________
 # Number of buses
 NBus = size(BLGS,1);
 # Number of branches (power lines and transformers)
 NBr = size(Br,1);
+# Reactance, pu
+X = Br[:,4]
+# Resistance, pu
+R = Br[:,3];
+# Impedance, pu
+Z = (X.^2+R.^2).^0.5;
 
 ### Connection matrices
 # list of "from" buses
@@ -284,7 +290,7 @@ Qmax = BLGS[:,14];
 Qmin = BLGS[:,15];
 
 # Branch limits (MVA)
-RATE_A = Br[:,6];
+RATE_A = Br[:,6]
 
 # Voltage limits
 Vmax = BLGS[1,6]; # All values are the same
@@ -307,6 +313,29 @@ for i = 1:size(BLGS,1)
     end
 end
 
+##################### Contingencies ##########################################
+# All lines and transformers are online
+aL = transpose(ones(size(Br,1),1));
+
+# Contingency FROM buses
+Cont_FR = float(contingency[:,3])[1,1];
+# Contingency TO buses
+Cont_TO = float(contingency[:,4])[1,1];
+# Number of contingencies
+Cont_size = size(contingency,1);
+# Contingency matrix
+Br_ind=hcat(collect(1:size(Br,1)),Br[:,1:2]);
+aL_loop = transpose(ones(size(Br,1),1))
+for i=1:size(Br,1)
+    if (Br_ind[i,2]==Cont_FR && Br_ind[i,3]==Cont_TO)
+        aL_loop[1,i]=0;
+        aL=vcat(aL,aL_loop)
+    end
+end
+############################# SET SIZES ######################################
+# Number of contingencies
+NK = size(aL,1);
+
 ############################# SET LINES ######################################
 links = Array{Tuple{Int16, Int16}}(NBr);
 for l=1:NBr
@@ -315,65 +344,79 @@ end
 ######################### MODEL DEFINITION ####################################
 #----------------------------- VARIABLES -------------------------------------
 # Nodal active power generation
-@variable(PSCOPF, p[i=1:NBus]);
-# Nodal reactive power generation;
-@variable(PSCOPF, q[i=1:NBus]);
+@variable(PSCOPF, p[i=1:NBus, k=1:NK])
+# Nodal reactive power generation
+@variable(PSCOPF, q[i=1:NBus, k=1:NK])
 # Branch active power flows
-@variable(PSCOPF, pl[i=1:NBus, j=1:NBus]);
+@variable(PSCOPF, pl[i=1:NBus, j=1:NBus, k=1:NK])
 # Branch reactive power flows
-@variable(PSCOPF, ql[i=1:NBus, j=1:NBus]);
+@variable(PSCOPF, ql[i=1:NBus, j=1:NBus, k=1:NK])
 # Voltage magnitude
-@variable(PSCOPF, V[i=1:NBus], start = 1.0);
+@variable(PSCOPF, V[i=1:NBus, k=1:NK], start = 1.0)
 #,Voltage phase angle
-@variable(PSCOPF, δ[i=1:NBus], start = 0.0);
+@variable(PSCOPF, δ[i=1:NBus, k=1:NK], start = 0.0)
 # Active power generation cost
 @variable(PSCOPF, Cost, lowerbound=0);
 
 #--------------------------------- CONSTRAINTS -------------------------------
 # Inner expression for active and reactive power definitions (in nodal and branches)
-@NLexpression(PSCOPF, InnerP[i=1:NBus,j=1:NBus], GL[i,j]*cos(δ[i]-δ[j]) + BL[i,j]*sin(δ[i]-δ[j]));
-@NLexpression(PSCOPF, InnerQ[i=1:NBus,j=1:NBus], GL[i,j]*sin(δ[i]-δ[j]) - BL[i,j]*cos(δ[i]-δ[j]));
+@NLexpression(PSCOPF, InnerP[i=1:NBus,j=1:NBus,k=1:NK], GL[i,j]*cos(δ[i,k]-δ[j,k]) + BL[i,j]*sin(δ[i,k]-δ[j,k]))
+@NLexpression(PSCOPF, InnerQ[i=1:NBus,j=1:NBus,k=1:NK], GL[i,j]*sin(δ[i,k]-δ[j,k]) - BL[i,j]*cos(δ[i,k]-δ[j,k]))
 # Nodal active power balance
-@NLconstraint(PSCOPF, EqConstrP[i=1:NBus], p[i] - Pd[i] == V[i]*sum(V[j]*InnerP[i,j] for j=1:NBus));
+@NLconstraint(PSCOPF, EqConstrP[i=1:NBus,k=1:NK], p[i,k] - Pd[i] == V[i,k]*sum(V[j,k]*InnerP[i,j,k] for j=1:NBus));
 # Nodal reactive power balance
-@NLconstraint(PSCOPF, EqConstrQ[i=1:NBus], q[i] - Qd[i] == V[i]*sum(V[j]*InnerQ[i,j] for j=1:NBus));
+@NLconstraint(PSCOPF, EqConstrQ[i=1:NBus,k=1:NK], q[i,k] - Qd[i] == V[i,k]*sum(V[j,k]*InnerQ[i,j,k] for j=1:NBus));
 
 # Active power flow
-@NLconstraint(PSCOPF,DefFlowP_ij[l=1:NBr], pl[links[l][1],links[l][2]] ==
-(V[links[l][1]]*V[links[l][2]]*InnerP[links[l][1],links[l][2]] - V[links[l][1]]^2*GL[links[l][1],links[l][2]]));
+@NLconstraint(PSCOPF,DefFlowP_ij[l=1:NBr,k=1:NK], pl[links[l][1],links[l][2],k] ==
+(V[links[l][1],k]*V[links[l][2],k]*InnerP[links[l][1],links[l][2],k] - V[links[l][1],k]^2*GL[links[l][1],links[l][2]])*aL[k,l])
 
-@NLconstraint(PSCOPF,DefFlowP_ji[l=1:NBr], pl[links[l][2],links[l][1]] ==
-(V[links[l][2]]*V[links[l][1]]*InnerP[links[l][2],links[l][1]] - V[links[l][2]]^2*GL[links[l][2],links[l][1]]));
+@NLconstraint(PSCOPF,DefFlowP_ji[l=1:NBr,k=1:NK], pl[links[l][2],links[l][1],k] ==
+(V[links[l][2],k]*V[links[l][1],k]*InnerP[links[l][2],links[l][1],k] - V[links[l][2],k]^2*GL[links[l][2],links[l][1]])*aL[k,l])
 
 # Reactive power flow
-@NLconstraint(PSCOPF,DefFlowQ_ij[l=1:NBr], ql[links[l][1],links[l][2]] ==
-(V[links[l][1]]*V[links[l][2]]*InnerQ[links[l][1],links[l][2]] + V[links[l][1]]^2*BL[links[l][1],links[l][2]]));
+@NLconstraint(PSCOPF,DefFlowQ_ij[l=1:NBr,k=1:NK], ql[links[l][1],links[l][2],k] ==
+(V[links[l][1],k]*V[links[l][2],k]*InnerQ[links[l][1],links[l][2],k] + V[links[l][1],k]^2*BL[links[l][1],links[l][2]])*aL[k,l]);
 
-@NLconstraint(PSCOPF,DefFlowQ_ji[l=1:NBr], ql[links[l][2],links[l][1]] ==
-(V[links[l][2]]*V[links[l][1]]*InnerQ[links[l][2],links[l][1]] + V[links[l][2]]^2*BL[links[l][2],links[l][1]]));
+@NLconstraint(PSCOPF,DefFlowQ_ji[l=1:NBr,k=1:NK], ql[links[l][2],links[l][1],k] ==
+(V[links[l][2],k]*V[links[l][1],k]*InnerQ[links[l][2],links[l][1],k] + V[links[l][2],k]^2*BL[links[l][2],links[l][1]])*aL[k,l]);
 
 # Line limits on Apparent Power
-@NLconstraint(PSCOPF, FlowLimits_ij[l=1:NBr], (pl[links[l][1],links[l][2]]^2 + ql[links[l][1],links[l][2]]^2) <= RATE_A[l]^2);
-@NLconstraint(PSCOPF, FlowLimits_ji[l=1:NBr], (pl[links[l][2],links[l][1]]^2 + ql[links[l][2],links[l][1]]^2) <= RATE_A[l]^2);
+@NLconstraint(PSCOPF, FlowLimits_ij[l=1:NBr,k=1:NK], (pl[links[l][1],links[l][2],k]^2 + ql[links[l][1],links[l][2],k]^2) <= RATE_A[l]^2);
+@NLconstraint(PSCOPF, FlowLimits_ji[l=1:NBr,k=1:NK], (pl[links[l][2],links[l][1],k]^2 + ql[links[l][2],links[l][1],k]^2) <= RATE_A[l]^2);
 
 # Generator active power output bound
 # slack bus in node 1
-@constraint(PSCOPF, GenLimitsP[i=1:NBus], Pmin[i] <= p[i] <= Pmax[i]);
+@constraint(PSCOPF, GenLimitsP[i=1:NBus,k=1:NK], Pmin[i] <= p[i,k] <= Pmax[i]);
 
 # Generator reactive power output bound
 # slack bus in node 1
-@constraint(PSCOPF, GenLimitsQ[i=1:NBus], Qmin[i] <= q[i] <= Qmax[i]);
+@constraint(PSCOPF, GenLimitsQ[i=1:NBus,k=1:NK], Qmin[i] <= q[i,k] <= Qmax[i]);
 
 # Voltage magnitude limits
-@constraint(PSCOPF, VoltageLimits[i=1:NBus], Vmin <= V[i] <= Vmax);
+@constraint(PSCOPF, VoltageLimits[i=1:NBus,k=1:NK], Vmin <= V[i,k] <= Vmax);
 
 # Angle limits
-@constraint(PSCOPF, δ[1] == 0);
-@constraint(PSCOPF, limitAngle[i=2:NBus], -pi/2 <= δ[i] <= pi/2);
+@constraint(PSCOPF, slackBus[k=1:NK], δ[1,k] == 0);
+@constraint(PSCOPF, limitAngle[i=2:NBus,k=1:NK], -pi/2 <= δ[i,k] <= pi/2);
 
 ## Objective function
 @NLconstraint(PSCOPF, ObjectiveFunction, (Cost == sum(a[i]*(p[i])^2 + b[i]*p[i] + c[i]  for i=1:NBus)));
 @objective(PSCOPF, Min, Cost)
+
+################################# AGC #########################################
+# Voltage control only on generator buses
+@constraint(PSCOPF, AGCLower[i in genSeg[:,1]], (q[i,2] - Qmin[i])*(V[i,2] - V[i,1]) <= 0);
+@constraint(PSCOPF, AGCUpper[i in genSeg[:,1]], (q[i,2] - Qmax[i])*(V[i,2] - V[i,1]) <= 0);
+total_part_factor = sum(part_factor);
+# Post-contingency real power shortfall
+@expression(PSCOPF, Delta, sum(p[i,2] for i in genSeg[:,1]) - sum(p[i,1] for i in genSeg[:,1]))
+
+@constraint(PSCOPF, GCLower[i in genSeg[:,1]], (p[i,2] - Pmin[i])*(p[i,2] - p[i,1] - (part_factor[i]/total_part_factor).*Delta) <= 0);
+@constraint(PSCOPF, GCUpper[i in genSeg[:,1]], (p[i,2] - Pmax[i])*(p[i,2] - p[i,1] - (part_factor[i]/total_part_factor).*Delta) <= 0);
+
+#@constraint(PSCOPF, GCLower[i in genSeg[:,1]], (p[i,2] - Pmin[i])*(p[i,2] - p[i,1] - part_factor[i]*Delta) <= 0);
+#@constraint(PSCOPF, GCUpper[i in genSeg[:,1]], (p[i,2] - Pmax[i])*(p[i,2] - p[i,1] - part_factor[i]*Delta) <= 0);
 
 # Print the model
 #print(PSCOPF)
@@ -381,6 +424,7 @@ end
 ## resolution
 solve(PSCOPF)
 ############################ OUTPUT FILES ##################################
+#cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Code")
 # Extracting calculated generation values for base case
 Pgen = [];
 for y in getvalue(p)[:,1]
@@ -410,12 +454,179 @@ pr[1:sizePg,4] = Qgen;
 
 # Writing into the file "solution1.txt"
 open("solution1.txt", "w") do f1
-    writedlm(f1, "--generation dispatch\r\n")
-    writedlm(f1, "bus id,unit id,genSeg(MW),qg(MVar)\r\n")
+    write(f1, "--generation dispatch\r\n")
+    write(f1, "bus id,unit id,genSeg(MW),qg(MVar)\r\n")
     for i in 1:sizePg
-        writedlm(f1, join(pr[i,:], ","))
-        writedlm(f1, "\r\n")
+        write(f1, join(pr[i,:], ","))
+        write(f1, "\r\n")
     end
-    writedlm(f1, "--end of generation dispatch")
+    write(f1, "--end of generation dispatch")
+end
+
+# Extracting calculated generation values for contingency case
+Pgenk = [];
+for y in getvalue(p)[:,2]
+    if abs(y) > 0.0001
+        push!(Pgenk,y*100)
+    end
+end
+Pgenk
+
+Qgenk = [];
+for z in getvalue(q)[:,2]
+    if abs(z) > 0.0001
+        push!(Qgenk,z*100)
+    end
+end
+
+#------- Defining structure of the output file "solution2.txt" ---------------
+pr2 = Array{Any}(sizePg,5);
+
+## 1. contingency generator dispatch
+# contingency ID
+pr2[1:sizePg,1] = repeat(["1"],outer=[sizePg]);
+# generator ID (not used in the evaluation process)
+for i in 1:sizePg
+    pr2[i,2] = "l_$i"
+end
+# bus ID
+pr2[1:sizePg,3] = genSeg[:,1];
+# unit ID
+pr2[1:sizePg,4] = repeat(["'1 '"],outer=[sizePg]);
+# Reactive power in megaVar
+pr2[1:sizePg,5] = Qgenk;
+
+## 2. contingency bus information
+pr3 = Array{Any}(2*NBus,4);
+# contingency ID
+pr3[1:NBus,1] = repeat(["0"],outer=[NBus]); # 0. base case
+pr3[NBus+1:2*NBus,1] = repeat(["1"],outer=[NBus]); # 1. contingency case
+# bus ID
+pr3[1:NBus,2] = round.(Int,BLGS[:,1]); # 0. base case
+pr3[NBus+1:2*NBus,2] = round.(Int,BLGS[:,1]); # 1. contingency case
+# Voltage in per unit
+pr3[1:NBus,3] = getvalue(V)[:,1]; # 0. base case
+pr3[NBus+1:2*NBus,3] = getvalue(V)[:,2]; # 1. contingency case
+# Voltage angle in degree
+pr3[1:NBus,4] = rad2deg.(getvalue(δ))[:,1]; # 0. base case
+pr3[NBus+1:2*NBus,4] = rad2deg.(getvalue(δ))[:,2]; # 1. contingency case
+
+## 3. contingency delta
+pr4 = Array{Any}(NK-1,2);
+pr4[1,1] = '1';
+pr4[1,2] = getvalue(Delta)*100;
+
+## 4. contingency line flow information
+pr5 = Array{Any}(2*NBr,9)
+# contingency ID
+pr5[1:NBr,1] = repeat(["0"],outer=[NBr]); # 0. base case
+pr5[NBr+1:2*NBr,1] = repeat(["1"],outer=[NBr]); # 1. contingency case
+# line ID (not used in the evaluation process)
+for i in 1:NBr
+    pr5[i,2] = "i_$i" # 0. base case
+end
+
+for i in 1:NBr
+    pr5[NBr+i,2] = "i_$i" # 1. contingency case
+end
+# origin bus ID
+pr5[1:NBr,3] = round.(Int,Br[:,1]); # 0. base case
+pr5[NBr+1:2*NBr,3] = round.(Int,Br[:,1]); # 1. contingency case
+# destination bus ID
+pr5[1:NBr,4] = round.(Int,Br[:,2]); # 0. base case
+pr5[NBr+1:2*NBr,4] = round.(Int,Br[:,2]); # 1. contingency case
+# circuit ID
+pr5[1:2*NBr,5] = repeat(["'BL'"],outer=[2*NBr]);
+# real power in megawatts at origin
+originP = [];
+for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
+    push!(originP,getvalue(pl)[x,y,1]*baseMVA) # 0. base case
+end
+pr5[1:NBr,6] = originP;
+
+originP = [];
+for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
+    push!(originP,getvalue(pl)[x,y,2]*baseMVA) # 1. contingency case
+end
+pr5[NBr+1:2*NBr,6] = originP;
+# reactive power in MVar at origin
+originQ = [];
+for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
+    push!(originQ,getvalue(ql)[x,y,1]*baseMVA) # 0. base case
+end
+pr5[1:NBr,7] = originQ;
+
+originQ = [];
+for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
+    push!(originQ,getvalue(ql)[x,y,2]*baseMVA) # 1. contingency case
+end
+pr5[NBr+1:2*NBr,7] = originQ;
+
+# real power in megawatts at destination
+destP = [];
+for (x,y) in zip(round.(Int,Br[:,2]), round.(Int,Br[:,1]))
+    push!(destP,getvalue(pl)[x,y,1]*baseMVA) # 0. base case
+end
+pr5[1:NBr,8] = destP;
+
+destP = [];
+for (x,y) in zip(round.(Int,Br[:,2]), round.(Int,Br[:,1]))
+    push!(destP,getvalue(pl)[x,y,2]*baseMVA) # 1. contingency case
+end
+pr5[NBr+1:2*NBr,8] = destP;
+
+# reactive power in MVar at destination
+destQ = [];
+for (x,y) in zip(round.(Int,Br[:,2]), round.(Int,Br[:,1]))
+    push!(destQ,getvalue(ql)[x,y,1]*baseMVA) # 0. base case
+end
+pr5[1:NBr,9] = destQ;
+
+destQ = [];
+for (x,y) in zip(round.(Int,Br[:,2]), round.(Int,Br[:,1]))
+    push!(destQ,getvalue(ql)[x,y,2]*baseMVA) # 1. contingency case
+end
+pr5[NBr+1:2*NBr,9] = destQ;
+# Deleting row of contingency case
+for i in size(pr5)[1]
+    if pr5[i,1] == "1"
+        for j in 1:NBr
+            if aL[2,j] == 0
+                pr5 = pr5[setdiff(1:end,j+NBr),:]
+            end
+        end
+    end
+end
+
+# Writing into the file solution2.txt
+open("solution2.txt", "w") do f2
+    write(f2, "--contingency generator\r\n")
+    write(f2, "conID,genID,busID,unitID,q(MVar)\r\n")
+    for i in 1:size(pr2)[1]
+        write(f2, join(pr2[i,:], ","))
+        write(f2, "\r\n")
+    end
+    write(f2, "--end of contingency generator\r\n")
+    write(f2, "--bus\r\n")
+    write(f2, "contingency id,bus id,v(pu),theta(deg)\r\n")
+    for i in 1:size(pr3)[1]
+        write(f2, join(pr3[i,:], ","))
+        write(f2, "\r\n")
+    end
+    write(f2, "--end of bus\r\n")
+    write(f2, "--Delta\r\n")
+    write(f2, "contingency id,Delta(MW)\r\n")
+    for i in 1:size(pr4)[1]
+        write(f2, join(pr4[i,:], ","))
+        write(f2, "\r\n")
+    end
+    write(f2, "--end of Delta\r\n")
+    write(f2, "--line flow\r\n")
+    write(f2, "-contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar)\r\n")
+    for i in 1:size(pr5)[1]
+        write(f2, join(pr5[i,:], ","))
+        write(f2, "\r\n")
+    end
+    write(f2, "--end of line flow\r\n")
 end
 end
