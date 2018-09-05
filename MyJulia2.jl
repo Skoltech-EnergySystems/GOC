@@ -1,6 +1,6 @@
-using GLPKMathProgInterface;
+#using GLPKMathProgInterface; # Chnage to Gurobi
 #Grid Optimization Competition
-using DataFrames, DataArrays, CSV, Ipopt, JuMP, ConditionalJuMP;
+using CSV, Ipopt, JuMP;
 
 function MyJulia2(rawFile, genFile, contFile)
 # Preventive Security Constrained Optimal Power Flow
