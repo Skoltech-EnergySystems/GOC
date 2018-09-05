@@ -410,12 +410,12 @@ pr[1:sizePg,4] = Qgen;
 
 # Writing into the file "solution1.txt"
 open("solution1.txt", "w") do f1
-    writedlm(f1, "--generation dispatch\r\n")
-    writedlm(f1, "bus id,unit id,genSeg(MW),qg(MVar)\r\n")
+    write(f1, "--generation dispatch\r\n")
+    write(f1, "bus id,unit id,genSeg(MW),qg(MVar)\r\n")
     for i in 1:sizePg
-        writedlm(f1, join(pr[i,:], ","))
-        writedlm(f1, "\r\n")
+        write(f1, join(pr[i,:], ","))
+        write(f1, "\r\n")
     end
-    writedlm(f1, "--end of generation dispatch")
+    write(f1, "--end of generation dispatch")
 end
 end

@@ -603,33 +603,33 @@ end
 
 # Writing into the file solution2.txt
 open("solution2.txt", "w") do f2
-    writedlm(f2, "--contingency generator\r\n")
-    writedlm(f2, "conID,genID,busID,unitID,q(MVar)\r\n")
+    write(f2, "--contingency generator\r\n")
+    write(f2, "conID,genID,busID,unitID,q(MVar)\r\n")
     for i in 1:size(pr2)[1]
-        writedlm(f2, join(pr2[i,:], ","))
-        writedlm(f2, "\r\n")
+        write(f2, join(pr2[i,:], ","))
+        write(f2, "\r\n")
     end
-    writedlm(f2, "--end of contingency generator\r\n")
-    writedlm(f2, "--bus\r\n")
-    writedlm(f2, "contingency id,bus id,v(pu),theta(deg)\r\n")
+    write(f2, "--end of contingency generator\r\n")
+    write(f2, "--bus\r\n")
+    write(f2, "contingency id,bus id,v(pu),theta(deg)\r\n")
     for i in 1:size(pr3)[1]
-        writedlm(f2, join(pr3[i,:], ","))
-        writedlm(f2, "\r\n")
+        write(f2, join(pr3[i,:], ","))
+        write(f2, "\r\n")
     end
-    writedlm(f2, "--end of bus\r\n")
-    writedlm(f2, "--Delta\r\n")
-    writedlm(f2, "contingency id,Delta(MW)\r\n")
+    write(f2, "--end of bus\r\n")
+    write(f2, "--Delta\r\n")
+    write(f2, "contingency id,Delta(MW)\r\n")
     for i in 1:size(pr4)[1]
-        writedlm(f2, join(pr4[i,:], ","))
-        writedlm(f2, "\r\n")
+        write(f2, join(pr4[i,:], ","))
+        write(f2, "\r\n")
     end
-    writedlm(f2, "--end of Delta\r\n")
-    writedlm(f2, "--line flow\r\n")
-    writedlm(f2, "-contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar)\r\n")
+    write(f2, "--end of Delta\r\n")
+    write(f2, "--line flow\r\n")
+    write(f2, "-contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar)\r\n")
     for i in 1:size(pr5)[1]
-        writedlm(f2, join(pr5[i,:], ","))
-        writedlm(f2, "\r\n")
+        write(f2, join(pr5[i,:], ","))
+        write(f2, "\r\n")
     end
-    writedlm(f2, "--end of line flow\r\n")
+    write(f2, "--end of line flow\r\n")
 end
 end
