@@ -227,4 +227,5 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
         end
         write(f2, "--end of line flow")
     end
+#    return f1, f2
 end

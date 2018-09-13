@@ -2,7 +2,7 @@ include("dProc.jl");
 include("buildMod.jl");
 include("dPrint.jl");
 
-function MyJulia1(rawFile, genFile, contFile)
+function MyJulia2(rawFile, genFile, contFile)
 
     println("RAW file: ",rawFile)
     println("gen file: ",genFile)
@@ -30,4 +30,5 @@ function MyJulia1(rawFile, genFile, contFile)
     tic()
     dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA);
     toc()
+
 end
