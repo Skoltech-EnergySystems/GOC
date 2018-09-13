@@ -222,5 +222,5 @@ function dProc(rawFile, genFile, contFile)
     # Kt
     Br[:,7] = ones(size(branchSeg,1)+3);
     Br[size(branchSeg,1)+1:size(branchSeg,1)+3,7] = (transformerSeg[[3,7,11],1]);
-    return BLGS, Br, contingency, genSeg
+    return BLGS, Br, contingency, genSeg, baseMVA
 end
