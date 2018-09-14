@@ -85,17 +85,18 @@ function dProc(rawFile, genFile, contFile)
     # 24. Quadratic term a in cost function
     # 25. Participation factor of generator
 
-    BLGS = zeros(14,25);
+    # Own created BLGS for data extraction with 25 columns
+    BLGS = zeros(size(busSeg[:,1],1),25);
     # Bus ID
     BLGS[:,1] = busSeg[:,1];
     # base kVA
     BLGS[:,2] = busSeg[:,3];
     # bus Type
-    BLGS[:,3] = zeros(14,1);
+    BLGS[:,3] = zeros(size(busSeg[:,1],1),1);
     # Initial voltage magnitude
-    BLGS[:,4] = ones(14,1);
+    BLGS[:,4] = ones(size(busSeg[:,1],1),1);
     # Initial voltage Angle
-    BLGS[:,5] = zeros(14,1);
+    BLGS[:,5] = zeros(size(busSeg[:,1],1),1);
     # normal Vmax
     BLGS[:,6] = busSeg[:,10];
     # normal Vmin
@@ -124,9 +125,9 @@ function dProc(rawFile, genFile, contFile)
         end
     end
     # P generation
-    BLGS[:,12] = ones(14,1);
+    BLGS[:,12] = ones(size(busSeg[:,1],1),1);
     # Q generation
-    BLGS[:,13] = ones(14,1);
+    BLGS[:,13] = ones(size(busSeg[:,1],1),1);
     # Q max
     Qmax = hcat(genSeg[:,1],genSeg[:,5]/baseMVA);
     for i = 1:size(Qmax,1)
@@ -146,7 +147,7 @@ function dProc(rawFile, genFile, contFile)
         end
     end
     # Voltage magnitude on generator
-    BLGS[:,16] = ones(14,1);
+    BLGS[:,16] = ones(size(busSeg[:,1],1),1);
     # P max
     Pmax = hcat(genSeg[:,1],genSeg[:,17]/baseMVA);
     for i = 1:size(Pmax,1)
@@ -200,27 +201,32 @@ function dProc(rawFile, genFile, contFile)
     # 7 : Kt
 
     # size of branch matrix
-    Br = zeros(size(branchSeg,1)+3,7)
+    # Number of lines
+    NL = size(branchSeg,1);
+    # NUmber of transformers
+    NT = Int(size(transformerSeg,1)/4);
+    # size of branch matrix
+    Br = zeros(NL + NT,7);
     # From buses
-    Br[1:size(branchSeg,1),1] = branchSeg[:,1];
-    Br[size(branchSeg,1)+1:size(branchSeg,1)+3,1] = transformerSeg[[1,5,9],1];
+    Br[1:NL,1] = branchSeg[:,1];
+    Br[NL + 1 : NL + NT,1] = transformerSeg[range(1,4,NT),1];
     # To buses
     Br[1:size(branchSeg,1),2] = branchSeg[:,2];
     Br[size(branchSeg,1)+1:size(branchSeg,1)+3,2] = transformerSeg[[1,5,9],2];
     # r
-    Br[1:size(branchSeg,1),3] = branchSeg[:,4];
-    Br[size(branchSeg,1)+1:size(branchSeg,1)+3,3] = transformerSeg[[2,6,10],1];
+    Br[1:NL,3] = branchSeg[:,4];
+    Br[NL + 1 : NL + NT,3] = transformerSeg[range(2,4,NT),1];
     # x
-    Br[1:size(branchSeg,1),4] = branchSeg[:,5];
-    Br[size(branchSeg,1)+1:size(branchSeg,1)+3,4] = transformerSeg[[2,6,10],2];
+    Br[1:NL,4] = branchSeg[:,5];
+    Br[NL + 1 : NL + NT,4] = transformerSeg[range(2,4,NT),2];
     # b
-    Br[1:size(branchSeg,1),5] = branchSeg[:,6];
-    Br[size(branchSeg,1)+1:size(branchSeg,1)+3,5] = [0.0,0.0,0.0];
+    Br[1:NL,5] = branchSeg[:,6];
+    Br[NL + 1 : NL + NT,5] = repeat([0.0],outer=[NT]);
     # RATE A
-    Br[1:size(branchSeg,1),6] = branchSeg[:,7]/baseMVA;
-    Br[size(branchSeg,1)+1:size(branchSeg,1)+3,6] = transformerSeg[[2,6,10],3]/baseMVA;
+    Br[1:NL,6] = branchSeg[:,7]/baseMVA;
+    Br[NL+1:NL+NT,6] = transformerSeg[range(2,4,NT),3]/baseMVA;
     # Kt
-    Br[:,7] = ones(size(branchSeg,1)+3);
-    Br[size(branchSeg,1)+1:size(branchSeg,1)+3,7] = (transformerSeg[[3,7,11],1]);
+    Br[:,7] = ones(NL + NT);
+    Br[NL + 1 : NL + NT,7] = transformerSeg[range(3,4,NT),1];
     return BLGS, Br, contingency, genSeg, baseMVA
 end
