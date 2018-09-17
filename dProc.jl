@@ -75,9 +75,9 @@ function dProc(rawFile, genFile, contFile)
     # 14: Qmax, pu
     # 15: Qmin, pu
     # 16: Vg
-    # 17: baseMVA
-    # 18: Pmax, pu
-    # 19: Pmin, pu
+    # 17: baseMVA;
+    # 18: Pmax, pu;
+    # 19: Pmin, pu;
     # 20: Gs, pu
     # 21: Bs, pu
     # 22. Constant term c in cost function
@@ -198,7 +198,7 @@ function dProc(rawFile, genFile, contFile)
     # 4 : x
     # 5 : b
     # 6 : RATE A
-    # 7 : Kt
+    # 7 : Kt - transformation ratio
 
     # size of branch matrix
     # Number of lines
