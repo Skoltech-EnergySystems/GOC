@@ -6,7 +6,8 @@ function MyJulia1(rawFile, genFile, contFile)
 
     println("RAW file: ",rawFile)
     println("gen file: ",genFile)
-    
+    println("con file: ",contFile)
+
     println("Data generation")
 
     tic()
