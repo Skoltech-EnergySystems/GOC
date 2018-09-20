@@ -12,16 +12,16 @@ bus id,unit id,pg(MW),qg(MVar)
     end
 
     open("solution2.txt", "w") do f2
-        write(f2,"--contingency generator
-conID,genID,busID,unitID,q(MW)
+        write(f2,"--contingency generator 
+conID,genID,busID,unitID,q(MW) 
 1,l_1,1,'1 ',1.8475679855874794 
 1,l_2,2,'1 ',17.529062939620395 
 1,l_3,3,'1 ',26.83240453854892 
 1,l_4,6,'1 ',-13.069778547524432 
-1,l_5,8,'1 ',7.012924635766144
---end of contingency generator
---bus
-contingency id,bus id,v(pu),theta(deg)
+1,l_5,8,'1 ',7.012924635766144 
+--end of contingency generator 
+--bus 
+contingency id,bus id,v(pu),theta(deg) 
 0,1,1.0955945168708268,0.0 
 0,2,1.0914037330958628,-0.6180364920346887 
 0,3,1.0653687314402722,-5.351617030723737 
@@ -50,13 +50,13 @@ contingency id,bus id,v(pu),theta(deg)
 1,12,1.086552263427946,1.4781696101871522 
 1,13,1.080104034852313,1.043601675331865 
 1,14,1.0628681479803885,-2.3025433707088814 
---end of bus
---Delta
-contingency id,Delta(MW)
-1,-0.0003872372664809789
---end of Delta
---line flow
-contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar)
+--end of bus 
+--Delta 
+contingency id,Delta(MW) 
+1,-0.0003872372664809789 
+--end of Delta 
+--line flow 
+contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar) 
 0,'BL',1,2,i_1 'BL',22.01622369238597,0.6662489341295349,-21.937892044385784,-0.427090853006366 
 0,'BL',1,5,i_2 'BL',15.948735988638965,7.303553026629831,-15.810230015464736,-6.731789705201361 
 0,'BL',2,3,i_3 'BL',49.5586516385175,4.593117896035999,-48.58144130123198,-0.47610724542087685 
@@ -96,7 +96,7 @@ contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),
 1,'BL',4,7,i_18 'BL',3.805764656861578,-9.977766895038748,-3.805764656861578,10.181608338249443 
 1,'BL',4,9,i_19 'BL',2.2594018469853814,-1.8735627697130712,-2.2594018469853814,1.9141419502144776 
 1,'BL',5,6,i_20 'BL',-35.996782425875736,-10.93279065732345,35.996782425875736,13.818794534054982 
---end of line flow
+--end of line flow 
 ")
     end
 
