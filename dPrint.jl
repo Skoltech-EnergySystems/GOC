@@ -129,11 +129,11 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     pr5[NBr+1:2*NBr,4] = round.(Int,Br[:,2]); # 1. contingency case
     # circuit ID
     for i in 1:NBr
-        pr5[i,5] = "i_$i" # 0. base case
+        pr5[i,5] = "i_$i 'BL'" # 0. base case
     end
 
     for i in 1:NBr
-        pr5[NBr+i,5] = "i_$i" # 1. contingency case
+        pr5[NBr+i,5] = "i_$i 'BL'" # 1. contingency case
     end
     # real power in megawatts at origin
     originP = [];
