@@ -120,7 +120,13 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     pr5[1:NBr,1] = repeat(["0"],outer=[NBr]); # 0. base case
     pr5[NBr+1:2*NBr,1] = repeat(["1"],outer=[NBr]); # 1. contingency case
     # line ID (not used in the evaluation process)
-    pr5[1:2*NBr,2] = repeat(["'BL'"],outer=[2*NBr]);
+    for i in 1:NBr
+        pr5[i,2] = "i_$i" # 0. base case
+    end
+
+    for i in 1:NBr
+        pr5[NBr+i,2] = "i_$i" # 1. contingency case
+    end
     # origin bus ID
     pr5[1:NBr,3] = round.(Int,Br[:,1]); # 0. base case
     pr5[NBr+1:2*NBr,3] = round.(Int,Br[:,1]); # 1. contingency case
@@ -128,13 +134,7 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     pr5[1:NBr,4] = round.(Int,Br[:,2]); # 0. base case
     pr5[NBr+1:2*NBr,4] = round.(Int,Br[:,2]); # 1. contingency case
     # circuit ID
-    for i in 1:NBr
-        pr5[i,5] = "i_$i 'BL'" # 0. base case
-    end
-
-    for i in 1:NBr
-        pr5[NBr+i,5] = "i_$i 'BL'" # 1. contingency case
-    end
+    pr5[1:2*NBr,5] = repeat(["'BL'"],outer=[2*NBr]);
     # real power in megawatts at origin
     originP = [];
     for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
@@ -199,7 +199,7 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     # Writing into the file solution2.txt
     open("solution2.txt", "w") do f2
         write(f2, "--contingency generator \n")
-        write(f2, "conID,genID,busID,unitID,q(MW) \n")
+        write(f2, "contingency id,genID,bus id,unit id,q(MW) \n")
         for i in 1:size(pr2)[1]
             write(f2, join(pr2[i,:], ","))
             write(f2, " \n")
@@ -220,7 +220,7 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
         end
         write(f2, "--end of Delta \n")
         write(f2, "--line flow \n")
-        write(f2, "contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar) \n")
+        write(f2, "contingency id,line id,origin bus id,destination bus id,circuit id, p_origin(MW) q_origin(MVar), p_destination(MW), q_destination(MVar) \n")
         for i in 1:size(pr5)[1]
             write(f2, join(pr5[i,:], ","))
             write(f2, " \n")
