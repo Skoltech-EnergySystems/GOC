@@ -53,7 +53,7 @@ contingency id,bus id,v(pu),theta(deg)
 --end of bus
 --Delta
 contingency id,Delta(MW)
-1,0.0020542382015618457
+1,-0.0003872372664809789
 --end of Delta
 --line flow
 contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar)
