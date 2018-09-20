@@ -27,13 +27,13 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     pr[1:sizePg,4] = Qgen;
 
     open("solution1.txt", "w") do f1
-        write(f1, "--generation dispatch \n")
-        write(f1, "bus id,unit id,pg(MW),qg(MVar) \n")
+        write(f1, "--generation dispatch\n")
+        write(f1, "bus id,unit id,pg(MW),qg(MVar)\n")
         for i in 1:sizePg
             write(f1, join(pr[i,:], ","))
-            write(f1, " \n")
+            write(f1, "\n")
         end
-        write(f1, "--end of generation dispatch \n")
+        write(f1, "--end of generation dispatch")
     end
 
     # Extracting calculated generation values for contingency case
@@ -198,34 +198,34 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
 
     # Writing into the file solution2.txt
     open("solution2.txt", "w") do f2
-        write(f2, "--contingency generator \n")
-        write(f2, "contingency id,genID,bus id,unit id,q(MW) \n")
+        write(f2, "--contingency generator\n")
+        write(f2, "contingency id,genID,bus id,unit id,q(MW)\n")
         for i in 1:size(pr2)[1]
             write(f2, join(pr2[i,:], ","))
-            write(f2, " \n")
+            write(f2, "\n")
         end
-        write(f2, "--end of contingency generator \n")
-        write(f2, "--bus \n")
-        write(f2, "contingency id,bus id,v(pu),theta(deg) \n")
+        write(f2, "--end of contingency generator\n")
+        write(f2, "--bus\n")
+        write(f2, "contingency id,bus id,v(pu),theta(deg)\n")
         for i in 1:size(pr3)[1]
             write(f2, join(pr3[i,:], ","))
-            write(f2, " \n")
+            write(f2, "\n")
         end
-        write(f2, "--end of bus \n")
-        write(f2, "--Delta \n")
-        write(f2, "contingency id,Delta(MW) \n")
+        write(f2, "--end of bus\n")
+        write(f2, "--Delta\n")
+        write(f2, "contingency id,Delta(MW)\n")
         for i in 1:size(pr4)[1]
             write(f2, join(pr4[i,:], ","))
-            write(f2, " \n")
+            write(f2, "\n")
         end
-        write(f2, "--end of Delta \n")
-        write(f2, "--line flow \n")
-        write(f2, "contingency id,line id,origin bus id,destination bus id,circuit id, p_origin(MW) q_origin(MVar), p_destination(MW), q_destination(MVar) \n")
+        write(f2, "--end of Delta\n")
+        write(f2, "--line flow\n")
+        write(f2, "contingency id,line id,origin bus id,destination bus id,circuit id, p_origin(MW) q_origin(MVar), p_destination(MW), q_destination(MVar)\n")
         for i in 1:size(pr5)[1]
             write(f2, join(pr5[i,:], ","))
-            write(f2, " \n")
+            write(f2, "\n")
         end
-        write(f2, "--end of line flow \n")
+        write(f2, "--end of line flow")
     end
 #    return f1, f2
 end
