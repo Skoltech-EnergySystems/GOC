@@ -183,8 +183,10 @@ function buildMod(BLGS, Br, contingency, genSeg)
     # Delta - powerfall constraint
     @constraint(PSCOPF, Delta == sum(p[i,2] for i in genSeg[:,1]) - sum(p[i,1] for i in genSeg[:,1]));
 
-    @constraint(PSCOPF, GCLower[i in genSeg[:,1]], (p[i,2] - Pmin[i])*(p[i,2] - p[i,1] - (part_factor[i]/total_part_factor).*Delta) <= 0);
-    @constraint(PSCOPF, GCUpper[i in genSeg[:,1]], (p[i,2] - Pmax[i])*(p[i,2] - p[i,1] - (part_factor[i]/total_part_factor).*Delta) <= 0);
+    @constraint(PSCOPF, PostCont[i in genSeg[:,1]], p[i,2] == p[i,1] + (part_factor[i]/total_part_factor).*Delta) ;
+
+    #@constraint(PSCOPF, GCLower[i in genSeg[:,1]], (p[i,2] - Pmin[i])*(p[i,2] - p[i,1] - (part_factor[i]/total_part_factor).*Delta) <= 0);
+    #@constraint(PSCOPF, GCUpper[i in genSeg[:,1]], (p[i,2] - Pmax[i])*(p[i,2] - p[i,1] - (part_factor[i]/total_part_factor).*Delta) <= 0);
 
     #@constraint(PSCOPF, GCLower[i in genSeg[:,1]], (p[i,2] - Pmin[i])*(p[i,2] - p[i,1] - part_factor[i] * (sum(p[i,2] for i in genSeg[:,1]) - sum(p[i,1] for i in genSeg[:,1]) )) <= 0);
     #@constraint(PSCOPF, GCUpper[i in genSeg[:,1]], (p[i,2] - Pmax[i])*(p[i,2] - p[i,1] - part_factor[i] * (sum(p[i,2] for i in genSeg[:,1]) - sum(p[i,1] for i in genSeg[:,1]) )) <= 0);
