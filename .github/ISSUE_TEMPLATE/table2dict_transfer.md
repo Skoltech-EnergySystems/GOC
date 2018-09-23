@@ -12,7 +12,11 @@ Currently, all input data is stored and derived from the BLGS and Br tables. Thi
 
 **Describe the solution you'd like**
 A clear and concise description of what you want to happen.
-Transfer BLGS and Br tables to dictionaries in all modules of the script: dProc, buildMod, dPrint
+Transfer BLGS and Br tables to dictionaries in all modules of the script: 
+a) dProc, 
+b) buildMod, 
+c) dPrint.
+When you have chosed the model you want to correct, write your name in list above near the module.
 
 **Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you've considered.
