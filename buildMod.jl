@@ -1,7 +1,7 @@
 using CSV, Ipopt, JuMP;
 
 function buildMod(BLGS, Br, contingency, genSeg)
-    PSCOPF = Model(solver=IpoptSolver(print_level=0))
+    PSCOPF = Model(solver=IpoptSolver()
     ####################################################################################### ALL UP GOES TO dProc function
     # Constant term c in cost function
     c = BLGS[:,22];
