@@ -8,14 +8,7 @@ cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_201
  genFile = "IEEE14-1_generator.csv";
 
 MyJulia1(rawFile, genFile, contFile)
-#=
-# 14 nodes but 72 contingencies
-  rawFile = "IEEE14-72_powersystem.raw"
-  contFile = "IEEE14-72_contingency.csv"
-  genFile = "IEEE14-72_generator.csv"
 
-  MyJulia1(rawFile, genFile, contFile)
-=#
 #=
 ## Large model
   rawFile = "RTS96-1_powersystem.raw"
