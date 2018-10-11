@@ -54,7 +54,7 @@ for i=1:NBus
     for k=1:NK
         if isdefined(:NGen)
             for g=1:NGen
-                UnBalanceP[i,k] =  Ω[i,g]*getvalue(p)[g,k] - Pd[i] - getvalue(V)[i,k]*sum(getvalue(V)[j,k]*(GL[i,j]*cos(getvalue(δ)[i,k]-getvalue(δ)[j,k]) + BL[i,j]*sin(getvalue(δ)[i,k]-getvalue(δ)[j,k])) for j=1:NBus);
+                UnBalanceP[i,k] = sum(Ω[i,g]*getvalue(p)[g,k] for g=1:NGen) - Pd[i] - getvalue(V)[i,k]*sum(getvalue(V)[j,k]*(GL[i,j]*cos(getvalue(δ)[i,k]-getvalue(δ)[j,k]) + BL[i,j]*sin(getvalue(δ)[i,k]-getvalue(δ)[j,k])) for j=1:NBus);
             end
         else
             UnBalanceP[i,k] =  getvalue(p)[i,k] - Pd[i] - getvalue(V)[i,k]*sum(getvalue(V)[j,k]*(GL[i,j]*cos(getvalue(δ)[i,k]-getvalue(δ)[j,k]) + BL[i,j]*sin(getvalue(δ)[i,k]-getvalue(δ)[j,k])) for j=1:NBus);
@@ -65,9 +65,10 @@ for i=1:NBus
 end
 println(sum(UnBalanceP_list))
 #println(UnBalanceP)
-if sum(UnBalanceP_list) > 0
+if sum(abs.(UnBalanceP_list)) > NBus*NK*accur_tresh
     println("MAX UnBalanceP: ", maximum(abs.(UnBalanceP)))
 end
+
 println("Number of violated values related with NodalBalance Q")
 UnBalanceQ_list = [];
 UnBalanceQ = zeros(NBus,NK)
@@ -75,7 +76,7 @@ for i=1:NBus
     for k=1:NK
         if isdefined(:NGen)
             for g=1:NGen
-                UnBalanceQ[i,k] =  Ω[i,g]*getvalue(q)[g,k] - Qd[i] - getvalue(V)[i,k]*sum(getvalue(V)[j,k]*(GL[i,j]*sin(getvalue(δ)[i,k]-getvalue(δ)[j,k]) - BL[i,j]*cos(getvalue(δ)[i,k]-getvalue(δ)[j,k])) for j=1:NBus);
+                UnBalanceQ[i,k] = sum(Ω[i,g]*getvalue(q)[g,k] for g=1:NGen) - Qd[i] - getvalue(V)[i,k]*sum(getvalue(V)[j,k]*(GL[i,j]*sin(getvalue(δ)[i,k]-getvalue(δ)[j,k]) - BL[i,j]*cos(getvalue(δ)[i,k]-getvalue(δ)[j,k])) for j=1:NBus);
             end
         else
             UnBalanceQ[i,k] =  getvalue(q)[i,k] - Qd[i] - getvalue(V)[i,k]*sum(getvalue(V)[j,k]*(GL[i,j]*sin(getvalue(δ)[i,k]-getvalue(δ)[j,k]) - BL[i,j]*cos(getvalue(δ)[i,k]-getvalue(δ)[j,k])) for j=1:NBus);
@@ -86,6 +87,9 @@ for i=1:NBus
 end
 println(sum(UnBalanceQ_list))
 #println(UnBalanceQ)
-if sum(UnBalanceQ_list) > 0
+if sum(abs.(UnBalanceQ_list)) > NBus*NK*accur_tresh
     println("MAX UnBalanceQ: ", maximum(abs.(UnBalanceQ)))
 end
+
+UnBalanceP
+UnBalanceQ

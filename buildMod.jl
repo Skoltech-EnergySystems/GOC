@@ -145,12 +145,12 @@ function buildMod(fData,uData, contDList, contingency)
     # "generators-buses" incidence matrix
     Ω = zeros(NBus,NGen);
 
-    for j = 1:NGen
+    for g = 1:NGen
         for i = 1:NBus
-            if collect(gData[k].ID_ext for k in sort(collect(keys(gData))))[j] == collect(bData[k].ID_ext for k in sort(collect(keys(bData))))[i] &&
-                 j in collect(gData[k].ID_int for k in sort(collect(keys(gData)))) &&
+            if collect(gData[k].ID_ext for k in sort(collect(keys(gData))))[g] == collect(bData[k].ID_ext for k in sort(collect(keys(bData))))[i] &&
+                 g in collect(gData[k].ID_int for k in sort(collect(keys(gData)))) &&
                  i in collect(bData[k].ID_int for k in sort(collect(keys(bData))))
-                Ω[i,j] = 1
+                Ω[i,g] = 1
             end
         end
     end
@@ -199,21 +199,22 @@ function buildMod(fData,uData, contDList, contingency)
     # Angle limits
     @constraint(PSCOPF, slackBus[k=1:NK], δ[1,k] == 0);
     @constraint(PSCOPF, limitAngle[i=2:NBus,k=1:NK], -pi/2 <= δ[i,k] <= pi/2);
-    c
+
+    # Delta - powerfall constraint
+    @constraint(PSCOPF, Delta == sum(p[g,2] for g = 1:NGen) - sum(p[g,1] for g = 1:NGen));
+
+    # Post-contingency real power shortfall
+    total_part_factor = sum(part_factor);
+    @constraint(PSCOPF, PostCont[g=1:NGen], p[g,2] == p[g,1] + (part_factor[g]/total_part_factor).*Delta);
+
     ## Objective function
-    @NLconstraint(PSCOPF, ObjectiveFunction, (Cost == sum(a[g]*(p[g,1])^2 + b[g]*p[g,1] + c[g]  for g=1:NGen)))
+    @NLconstraint(PSCOPF, ObjectiveFunction, (Cost == sum(a[g]*(p[g,1])^2 + b[g]*p[g,1] + c[g]  for g=1:NGen)));
     @objective(PSCOPF, Min, Cost)
 
     ################################# AGC #########################################
     # Voltage control only on generator buses
     @constraint(PSCOPF, AGCLower[g=1:NGen, i=1:NBus], (q[g,2] - Qmin[g])*(V[i,2] - V[i,1]) <= 0);
     @constraint(PSCOPF, AGCUpper[g=1:NGen, i=1:NBus], (q[g,2] - Qmax[g])*(V[i,2] - V[i,1]) <= 0);
-    total_part_factor = sum(part_factor);
-    # Post-contingency real power shortfall
-    # Delta - powerfall constraint
-    @constraint(PSCOPF, Delta == sum(p[g,2] for g = 1:NGen) - sum(p[g,1] for g = 1:NGen))
-
-    @constraint(PSCOPF, PostCont[g=1:NGen], p[g,2] == p[g,1] + (part_factor[g]/total_part_factor).*Delta) ;
 
     ## resolution
     return (PSCOPF,NGen,NBus,NBr,NK,aL)
