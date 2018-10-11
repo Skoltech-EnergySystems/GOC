@@ -205,7 +205,8 @@ function buildMod(fData,uData, contDList, contingency)
 
     # Post-contingency real power shortfall
     total_part_factor = sum(part_factor);
-    @constraint(PSCOPF, PostCont[g=1:NGen], p[g,2] == p[g,1] + (part_factor[g]/total_part_factor).*Delta);
+    #@constraint(PSCOPF, PostCont[g=1:NGen], p[g,2] == p[g,1] + (part_factor[g]/total_part_factor).*Delta);
+    @constraint(PSCOPF, PostCont[g=1:NGen], p[g,2] == p[g,1] + part_factor[g]*Delta);
 
     ## Objective function
     @NLconstraint(PSCOPF, ObjectiveFunction, (Cost == sum(a[g]*(p[g,1])^2 + b[g]*p[g,1] + c[g]  for g=1:NGen)));
