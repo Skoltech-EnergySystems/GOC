@@ -201,7 +201,7 @@ function buildMod(fData,uData, contDList, contingency)
     @constraint(PSCOPF, limitAngle[i=2:NBus,k=1:NK], -pi/2 <= δ[i,k] <= pi/2);
     c
     ## Objective function
-    @NLconstraint(PSCOPF, ObjectiveFunction, (Cost == sum(a[g]*(p[g])^2 + b[g]*p[g] + c[g]  for g=1:NGen)))
+    @NLconstraint(PSCOPF, ObjectiveFunction, (Cost == sum(a[g]*(p[g,1])^2 + b[g]*p[g,1] + c[g]  for g=1:NGen)))
     @objective(PSCOPF, Min, Cost)
 
     ################################# AGC #########################################
