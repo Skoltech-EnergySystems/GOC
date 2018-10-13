@@ -34,6 +34,6 @@ function MyJulia1(rawFile, genFile, contFile)
 
     println("Solution writing")
     tic()
-    dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,genSeg,busSeg,brList,baseMVA);
+    dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,genSeg,busSeg,brList,brDList,baseMVA);
     toc()
 end
