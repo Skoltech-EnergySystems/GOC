@@ -106,18 +106,10 @@ function dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,genSeg,busSeg,brList,baseMVA)
     end
 
     # List of origin buses
-    orig_bus = []
-    for i = 1:NBr
-        orig_bus_i = brList[i][1]
-        push!(orig_bus,orig_bus_i)
-    end
+    orig_bus = collect(brData[k].From for k in sort(collect(keys(brData))));
 
     # List of destination buses
-    dest_bus = []
-    for i = 1:NBr
-        dest_bus_i = brList[i][2]
-        push!(dest_bus,dest_bus_i)
-    end
+    dest_bus = collect(brData[k].To for k in sort(collect(keys(brData))));
 
     # origin bus ID
     pr5[1:NBr,3] = orig_bus; # 0. base case
@@ -186,7 +178,7 @@ function dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,genSeg,busSeg,brList,baseMVA)
         if pr5[i,1] == "1"
             for j in 1:NBr
                 if aL[2,j] == 0
-                    pr5 = pr5[setdiff(1:end,j+NBr),:]
+                    pr5 = pr5[1:size(pr5,1) .!= j+NBr,: ]
                 end
             end
         end
