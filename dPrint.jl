@@ -1,4 +1,4 @@
-function dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,genSeg,busSeg,brList,baseMVA)
+function dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,genSeg,busSeg,brList,brDList,baseMVA)
 
     Pgen = [];
     for y in getvalue(PSCOPF[:p])[:,1]
@@ -106,10 +106,10 @@ function dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,genSeg,busSeg,brList,baseMVA)
     end
 
     # List of origin buses
-    orig_bus = collect(brData[k].From for k in sort(collect(keys(brData))));
+    orig_bus = collect(brDList[k].From for k in sort(collect(keys(brDList))));
 
     # List of destination buses
-    dest_bus = collect(brData[k].To for k in sort(collect(keys(brData))));
+    dest_bus = collect(brDList[k].To for k in sort(collect(keys(brDList))));
 
     # origin bus ID
     pr5[1:NBr,3] = orig_bus; # 0. base case
