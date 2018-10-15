@@ -14,11 +14,11 @@ bus id,unit id,pg(MW),qg(MVar)
     open("solution2.txt", "w") do f2
         write(f2,"--contingency generator
 contingency id,genID,bus id,unit id,q(MW)
-1,l_14,1,'1 ',1.8920439657
-1,l_17,6,'1 ',-13.0424143005
-1,l_18,8,'1 ',7.2486797834
-1,l_15,2,'1 ',17.7006839160
-1,l_16,3,'1 ',26.9101533072
+1,l_1,1,'1 ',1.8481492741615886
+1,l_2,2,'1 ',17.528970270909642
+1,l_3,3,'1 ',26.833491559649502
+1,l_4,6,'1 ',-13.070071613295509
+1,l_5,8,'1 ',7.013398635510355
 --end of contingency generator
 --bus
 contingency id,bus id,v(pu),theta(deg)
