@@ -162,9 +162,9 @@ function buildMod(fData,uData, contDList, contingency)
     @NLexpression(PSCOPF, InnerP[i=1:NBus,j=1:NBus,k=1:NK], GL[i,j]*cos(δ[i,k]-δ[j,k]) + BL[i,j]*sin(δ[i,k]-δ[j,k]))
     @NLexpression(PSCOPF, InnerQ[i=1:NBus,j=1:NBus,k=1:NK], GL[i,j]*sin(δ[i,k]-δ[j,k]) - BL[i,j]*cos(δ[i,k]-δ[j,k]))
     # Nodal active power balance
-    @NLconstraint(PSCOPF, EqConstrP[i=1:NBus,k=1:NK,g=1:NGen], sum(Ω[i,g]*p[g,k] for g=1:NGen) - Pd[i] == V[i,k]*sum(V[j,k]*InnerP[i,j,k] for j=1:NBus));
+    @NLconstraint(PSCOPF, EqConstrP[i=1:NBus,k=1:NK], sum(Ω[i,g]*p[g,k] for g=1:NGen) - Pd[i] == V[i,k]*sum(V[j,k]*InnerP[i,j,k] for j=1:NBus));
     # Nodal reactive power balance
-    @NLconstraint(PSCOPF, EqConstrQ[i=1:NBus,k=1:NK,g=1:NGen], sum(Ω[i,g]*q[g,k] for g=1:NGen) - Qd[i] == V[i,k]*sum(V[j,k]*InnerQ[i,j,k] for j=1:NBus));
+    @NLconstraint(PSCOPF, EqConstrQ[i=1:NBus,k=1:NK], sum(Ω[i,g]*q[g,k] for g=1:NGen) - Qd[i] == V[i,k]*sum(V[j,k]*InnerQ[i,j,k] for j=1:NBus));
 
     # Active power flow
     # br_int has the same functions as "links", but is done for consequtive bus numbers
