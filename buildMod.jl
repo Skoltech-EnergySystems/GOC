@@ -218,5 +218,5 @@ function buildMod(fData,uData, contDList, contingency)
     @constraint(PSCOPF, AGCUpper[g=1:NGen, i=1:NBus], (q[g,2] - Qmax[g])*(V[i,2] - V[i,1]) <= 0);
 
     ## resolution
-    return (PSCOPF,NGen,NBus,NBr,NK,aL)
+    return (PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt)
 end

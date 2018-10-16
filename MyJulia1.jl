@@ -24,7 +24,7 @@ function MyJulia1(rawFile, genFile, contFile)
     println("Model generation")
 
     tic()
-    PSCOPF,NGen,NBus,NBr,NK,aL = buildMod(fData,uData, contDList, contingency);
+    PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt = buildMod(fData,uData, contDList, contingency);
     toc()
 
     println("Model solve")
@@ -34,6 +34,6 @@ function MyJulia1(rawFile, genFile, contFile)
 
     println("Solution writing")
     tic()
-    dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,genSeg,busSeg,brList,brDList,baseMVA);
+    dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt,genSeg,busSeg,brList,brDList,baseMVA);
     toc()
 end
