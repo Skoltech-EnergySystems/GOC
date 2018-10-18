@@ -2,7 +2,7 @@ include("def.jl");
 include("dProc.jl");
 include("buildMod.jl");
 include("dPrint.jl");
-include("dPrint_pl.jl");
+#include("dPrint_pl.jl");
 
 function MyJulia1(rawFile, genFile, contFile)
 
