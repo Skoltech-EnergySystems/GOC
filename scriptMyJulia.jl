@@ -1,6 +1,6 @@
 ### Script
 include("MyJulia1.jl");
-cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Code/GOC_v15_dictionaries")
+cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Code/GOC_v15_dictionaries/GitHub versions and ouputs/v_17 Oct")
 # initial model (small)
 ##=
  rawFile = "IEEE14-1_powersystem.raw";
