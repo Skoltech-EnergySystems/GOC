@@ -214,7 +214,7 @@ function buildMod(fData,uData, contDList, contingency)
 
     ################################# AGC #########################################
     # Voltage control only on generator buses
-    @constraint(PSCOPF, AGCLower[g=1:NGen, i=1:NBus], (q[g,2] - Qmin[g])*(V[i,2] - V[i,1]) >= 0);
+    @constraint(PSCOPF, AGCLower[g=1:NGen, i=1:NBus], (q[g,2] - Qmin[g])*(V[i,2] - V[i,1]) <= 0);
     @constraint(PSCOPF, AGCUpper[g=1:NGen, i=1:NBus], (q[g,2] - Qmax[g])*(V[i,2] - V[i,1]) <= 0);
 
     ## resolution
