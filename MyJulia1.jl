@@ -2,6 +2,7 @@ include("def.jl");
 include("dProc.jl");
 include("buildMod.jl");
 include("dPrint.jl");
+include("dPrint_pl.jl");
 
 function MyJulia1(rawFile, genFile, contFile)
 
@@ -24,7 +25,7 @@ function MyJulia1(rawFile, genFile, contFile)
     println("Model generation")
 
     tic()
-    PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt = buildMod(fData,uData, contDList, contingency);
+    PSCOPF,NGen,NBus,NBr,NBrc,NK,aL,Ct,Ctc,Cf,Cfc,Yf,Yfc,Yt,Ytc,br_int,br_intc = buildMod(fData,uData, contDList, contingency);
     toc()
 
     println("Model solve")
@@ -34,6 +35,7 @@ function MyJulia1(rawFile, genFile, contFile)
 
     println("Solution writing")
     tic()
-    dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt,genSeg,busSeg,brList,brDList,baseMVA);
+    dPrint(PSCOPF,NGen,NBus,NBr,NBrc,NK,aL,Ct,Ctc,Cf,Cfc,Yf,Yfc,Yt,Ytc,br_int,br_intc,genSeg,busSeg,brList,brDList,baseMVA);
+    #dPrint_pl(PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt,genSeg,busSeg,brList,brDList,baseMVA);
     toc()
 end
