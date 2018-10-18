@@ -65,7 +65,7 @@ for i=1:NBus
 end
 println(sum(UnBalanceP_list))
 #println(UnBalanceP)
-if sum(abs.(UnBalanceP_list)) > NBus*NK*accur_tresh
+if sum(abs.(UnBalanceP_list)) > 0
     println("MAX UnBalanceP: ", maximum(abs.(UnBalanceP)))
 end
 
@@ -87,9 +87,36 @@ for i=1:NBus
 end
 println(sum(UnBalanceQ_list))
 #println(UnBalanceQ)
-if sum(abs.(UnBalanceQ_list)) > NBus*NK*accur_tresh
+if sum(abs.(UnBalanceQ_list)) > 0
     println("MAX UnBalanceQ: ", maximum(abs.(UnBalanceQ)))
 end
 
-UnBalanceP
-UnBalanceQ
+println("Number of violated PV-PQ: qmax")
+UnBalanceGmax_list = [];
+UnBalanceGmax = zeros(NGen);
+# Paired external and internal location of geberators
+Bus_Gen = hcat(collect(gData[k].ID_ext for k in sort(collect(keys(gData)))),collect(gData[k].ID_int for k in sort(collect(keys(gData)))));
+
+for k = 1:size(Bus_Gen,1)
+    UnBalanceGmax[k] = min(max( 0,getvalue(V[Bus_Gen[k,1],1]) - getvalue(V[Bus_Gen[k,1],2]) ), max( 0,Qmax[Bus_Gen[k,2]] - getvalue(q[Bus_Gen[k,2],2]) ) )
+    UnBalanceGmax_val = (.!(-accur_tresh.<=UnBalanceGmax[k].<= accur_tresh))
+    UnBalanceGmax_list = [UnBalanceGmax_list; UnBalanceGmax_val]
+end
+println(sum(UnBalanceGmax_list))
+if sum(abs.(UnBalanceGmax_list)) > 0
+    println("MAX UnBalanceGmax: ", maximum(abs.(UnBalanceGmax)))
+end
+
+println("Number of violated PV-PQ: qmin")
+UnBalanceGmin_list = [];
+UnBalanceGmin = zeros(NGen);
+
+for k = 1:size(Bus_Gen,1)
+    UnBalanceGmin[k] = min(max( 0,getvalue(V[Bus_Gen[k,1],2]) - getvalue(V[Bus_Gen[k,1],1]) ), max( 0,getvalue(q[Bus_Gen[k,2],2])  - Qmin[Bus_Gen[k,2]]) )
+    UnBalanceGmin_val = (.!(-accur_tresh.<=UnBalanceGmin[k].<= accur_tresh))
+    UnBalanceGmin_list = [UnBalanceGmin_list; UnBalanceGmin_val]
+end
+println(sum(UnBalanceGmin_list))
+if sum(abs.(UnBalanceGmin_list)) > 0
+    println("MAX UnBalanceGmin: ", maximum(abs.(UnBalanceGmin)))
+end
