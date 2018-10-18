@@ -28,7 +28,6 @@ function buildMod(fData,uData, contDList, contingency)
     NBus = size(bList)[1];
     # Number of branches (power lines and transformers)
     NBr = size(brList)[1];
-    NBrc = size(brList)[1]-1;
     # Number of generators
     NGen = size(gList)[1];
     ### Connection matrices
@@ -45,77 +44,40 @@ function buildMod(fData,uData, contDList, contingency)
             end
         end
     end
-    br_intc = [br_int[1:11,:];br_int[13:20,:]];
     #br_int
     f = br_int[:,1];
-    fc = br_intc[:,1];
+
     # list of "to" buses
     t = br_int[:,2];
-    tc = br_intc[:,2];
     #connection matrix for line & from buses
     Cf = sparse(collect(1:NBr), f, ones(NBr), NBr, NBus);
-    Cfc = sparse(collect(1:NBrc), fc, ones(NBrc), NBrc, NBus);
     # connection matrix for line & to buses
     Ct = sparse(collect(1:NBr), t, ones(NBr), NBr, NBus);
-    Ctc = sparse(collect(1:NBrc), tc, ones(NBrc), NBrc, NBus);
     # series admittance
-    Ys = 1 ./ (collect(brData[k].r for k in sort(collect(keys(brData)))) + im * collect(brData[k].x for k in sort(collect(keys(brData)))));
-    Ysc = [Ys[1:11];Ys[13:20]]
+    Ys = 1 ./ (collect(brData[k].r for k in sort(collect(keys(brData)))) + im * collect(brData[k].x for k in sort(collect(keys(brData)))))
     # line charging susceptance
-    Bc = collect(brData[k].bc for k in sort(collect(keys(brData))));
-    Bcc = [Bc[1:11];Bc[13:20]]
+    Bc = collect(brData[k].bc for k in sort(collect(keys(brData))))
     # transformer phase shirters
-    shift = zeros(size(brList,1),1);
-    shiftc = [shift[1:11];shift[13:20]]
+    shift = zeros(size(brList,1),1)
     # tap ratios
-    tap = collect(brData[k].tau for k in sort(collect(keys(brData)))).*exp.(im*pi/180*shift);
-    tapc = [tap[1:11];tap[13:20]]
+    tap = collect(brData[k].tau for k in sort(collect(keys(brData)))).*exp.(im*pi/180*shift)
 
     # admittance co-matrices
     Ytt = Ys + im*Bc/2;
-    Yttc = Ysc + im*Bcc/2
-
     Yff = Ytt ./ (tap .* conj(tap));
-    Yffc = Yttc ./ (tapc .* conj(tapc))
-
     Yft = - Ys ./ conj(tap);
-    Yftc = - Ysc ./ conj(tapc)
-
     Ytf = - Ys ./ tap;
-    Ytfc = - Ysc ./ tapc
     # Shunt admittance
     Ysh = (collect(bData[k].gsh for k in sort(collect(keys(bData)))) + im * collect(bData[k].bsh for k in sort(collect(keys(bData)))))
-    Yshc = Ysh
     # From and To admittance co-matrices
     i = [1:NBr; 1:NBr]; # In Matpower this line is transposed
-    ic = [1:NBrc; 1:NBrc]
-
     Yf = sparse(i, [f; t], [Yff; Yft][:,1], NBr, NBus);
-    Yfc = sparse(ic, [fc; tc], [Yffc; Yftc][:,1], NBrc, NBus)
-
     Yt = sparse(i, [f; t], [Ytf; Ytt][:,1], NBr, NBus);
-    Ytc = sparse(ic, [fc; tc], [Ytfc; Yttc][:,1], NBrc, NBus)
-
     # Ybus
     Ybus = transpose(Cf) * Yf + transpose(Ct) * Yt + sparse(1:NBus, 1:NBus, Ysh, NBus, NBus);
-    Ybusc = transpose(Cfc) * Yfc + transpose(Ctc) * Ytc + sparse(1:NBus, 1:NBus, Yshc, NBus, NBus)
-
     # Conductance and susceptance of Ybus
-    GLb = real.(Ybus)
-    #
-    NK = 2
-    GLc = real.(Ybusc)
-    GL = zeros(NBus,NBus,NK)
-    GL[:,:,1] = GLb
-    GL[:,:,2] = GLc
-    #
-
-    BLb = imag.(Ybus);
-    #
-    BLc = imag.(Ybusc);
-    BL = zeros(NBus,NBus,NK)
-    BL[:,:,1] = BLb
-    BL[:,:,2] = BLc
+    GL = real.(Ybus);
+    BL = imag.(Ybus);
     # Generator limits
     Pmax = collect(gData[k].Pmax for k in sort(collect(keys(gData))))
     Pmin = collect(gData[k].Pmin for k in sort(collect(keys(gData))))
@@ -197,8 +159,8 @@ function buildMod(fData,uData, contDList, contingency)
     #sum(Ω)
     #--------------------------------- CONSTRAINTS -------------------------------
     # Inner expression for active and reactive power definitions (in nodal and branches)
-    @NLexpression(PSCOPF, InnerP[i=1:NBus,j=1:NBus,k=1:NK], GL[i,j,k]*cos(δ[i,k]-δ[j,k]) + BL[i,j,k]*sin(δ[i,k]-δ[j,k]))
-    @NLexpression(PSCOPF, InnerQ[i=1:NBus,j=1:NBus,k=1:NK], GL[i,j,k]*sin(δ[i,k]-δ[j,k]) - BL[i,j,k]*cos(δ[i,k]-δ[j,k]))
+    @NLexpression(PSCOPF, InnerP[i=1:NBus,j=1:NBus,k=1:NK], GL[i,j]*cos(δ[i,k]-δ[j,k]) + BL[i,j]*sin(δ[i,k]-δ[j,k]))
+    @NLexpression(PSCOPF, InnerQ[i=1:NBus,j=1:NBus,k=1:NK], GL[i,j]*sin(δ[i,k]-δ[j,k]) - BL[i,j]*cos(δ[i,k]-δ[j,k]))
     # Nodal active power balance
     @NLconstraint(PSCOPF, EqConstrP[i=1:NBus,k=1:NK], sum(Ω[i,g]*p[g,k] for g=1:NGen) - Pd[i] == V[i,k]*sum(V[j,k]*InnerP[i,j,k] for j=1:NBus));
     # Nodal reactive power balance
@@ -207,17 +169,17 @@ function buildMod(fData,uData, contDList, contingency)
     # Active power flow
     # br_int has the same functions as "links", but is done for consequtive bus numbers
     @NLconstraint(PSCOPF,DefFlowP_ij[l=1:NBr,k=1:NK], pl[br_int[l,1],br_int[l,2],k] ==
-    (V[br_int[l,1],k]*V[br_int[l,2],k]*InnerP[br_int[l,1],br_int[l,2],k] - V[br_int[l,1],k]^2*GL[br_int[l,1],br_int[l,2],k])*aL[k,l])
+    (V[br_int[l,1],k]*V[br_int[l,2],k]*InnerP[br_int[l,1],br_int[l,2],k] - V[br_int[l,1],k]^2*GL[br_int[l,1],br_int[l,2]])*aL[k,l])
 
     @NLconstraint(PSCOPF,DefFlowP_ji[l=1:NBr,k=1:NK], pl[br_int[l,2],br_int[l,1],k] ==
-    (V[br_int[l,2],k]*V[br_int[l,1],k]*InnerP[br_int[l,2],br_int[l,1],k] - V[br_int[l,2],k]^2*GL[br_int[l,2],br_int[l,1],k])*aL[k,l])
+    (V[br_int[l,2],k]*V[br_int[l,1],k]*InnerP[br_int[l,2],br_int[l,1],k] - V[br_int[l,2],k]^2*GL[br_int[l,2],br_int[l,1]])*aL[k,l])
 
     # Reactive power flow
     @NLconstraint(PSCOPF,DefFlowQ_ij[l=1:NBr,k=1:NK], ql[br_int[l,1],br_int[l,2],k] ==
-    (V[br_int[l,1],k]*V[br_int[l,2],k]*InnerQ[br_int[l,1],br_int[l,2],k] + V[br_int[l,1],k]^2*BL[br_int[l,1],br_int[l,2],k])*aL[k,l]);
+    (V[br_int[l,1],k]*V[br_int[l,2],k]*InnerQ[br_int[l,1],br_int[l,2],k] + V[br_int[l,1],k]^2*BL[br_int[l,1],br_int[l,2]])*aL[k,l]);
 
     @NLconstraint(PSCOPF,DefFlowQ_ji[l=1:NBr,k=1:NK], ql[br_int[l,2],br_int[l,1],k] ==
-    (V[br_int[l,2],k]*V[br_int[l,1],k]*InnerQ[br_int[l,2],br_int[l,1],k] + V[br_int[l,2],k]^2*BL[br_int[l,2],br_int[l,1],k])*aL[k,l]);
+    (V[br_int[l,2],k]*V[br_int[l,1],k]*InnerQ[br_int[l,2],br_int[l,1],k] + V[br_int[l,2],k]^2*BL[br_int[l,2],br_int[l,1]])*aL[k,l]);
 
     # Line limits on Apparent Power
     @NLconstraint(PSCOPF, FlowLimits_ij[l=1:NBr,k=1:NK], (pl[br_int[l,1],br_int[l,2],k]^2 + ql[br_int[l,1],br_int[l,2],k]^2) <= RATE_A[l]^2);
@@ -252,9 +214,9 @@ function buildMod(fData,uData, contDList, contingency)
 
     ################################# AGC #########################################
     # Voltage control only on generator buses
-    @constraint(PSCOPF, AGCLower[g=1:NGen, i=1:NBus], (q[g,2] - Qmin[g])*(V[i,2] - V[i,1]) >= 0);
+    @constraint(PSCOPF, AGCLower[g=1:NGen, i=1:NBus], (q[g,2] - Qmin[g])*(V[i,2] - V[i,1]) <= 0);
     @constraint(PSCOPF, AGCUpper[g=1:NGen, i=1:NBus], (q[g,2] - Qmax[g])*(V[i,2] - V[i,1]) <= 0);
 
     ## resolution
-    return (PSCOPF,NGen,NBus,NBr,NBrc,NK,aL,Ct,Ctc,Cf,Cfc,Yf,Yfc,Yt,Ytc,br_int,br_intc)
+    return (PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt)
 end

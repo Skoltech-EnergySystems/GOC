@@ -1,4 +1,4 @@
-function dPrint(PSCOPF,NGen,NBus,NBr,NBrc,NK,aL,Ct,Ctc,Cf,Cfc,Yf,Yfc,Yt,Ytc,br_int,br_intc,genSeg,busSeg,brList,brDList,baseMVA)
+function dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt,genSeg,busSeg,brList,brDList,baseMVA)
     println("Deriving FROM and TO injections")
     tic()
     # Computed V in complex form for pre-contingency case
@@ -14,12 +14,12 @@ function dPrint(PSCOPF,NGen,NBus,NBr,NBrc,NK,aL,Ct,Ctc,Cf,Cfc,Yf,Yfc,Yt,Ytc,br_i
     # Apparent power FROM for pre-contingency case
     Sf_k0 = Diagonal(Cf*Vk0c)*conj(Yf)*conj(Vk0c);
     # Apparent power FROM for post-contingency case
-    Sf_k1 = Diagonal(Cfc*Vk1c)*conj(Yfc)*conj(Vk1c);
+    Sf_k1 = Diagonal(Cf*Vk1c)*conj(Yf)*conj(Vk1c);
 
     # Apparent power TO for pre-contingency case
     St_k0 = Diagonal(Ct*Vk0c)*conj(Yt)*conj(Vk0c);
     # Apparent power TO for post-contingency case
-    St_k1 = Diagonal(Ctc*Vk1c)*conj(Ytc)*conj(Vk1c);
+    St_k1 = Diagonal(Ct*Vk1c)*conj(Yt)*conj(Vk1c);
 
     # Active power FROM for pre-contingency case
     Pf_k0 = real(Sf_k0);
@@ -42,10 +42,7 @@ function dPrint(PSCOPF,NGen,NBus,NBr,NBrc,NK,aL,Ct,Ctc,Cf,Cfc,Yf,Yfc,Yt,Ytc,br_i
     Qt_k1 = imag(St_k1);
 
     toc()
-    ############################ OUTPUT FILES #####################################
-    ################################## SOLUTION1.TXT ##############################
-    println("Writing results")
-    tic()
+
     Pgen = [];
     for y in getvalue(PSCOPF[:p])[:,1]
         if abs(y) > 0.0001
@@ -129,108 +126,100 @@ function dPrint(PSCOPF,NGen,NBus,NBr,NBrc,NK,aL,Ct,Ctc,Cf,Cfc,Yf,Yfc,Yt,Ytc,br_i
     pr4[1,2] = getvalue(PSCOPF[:Delta])*100;
 
     ## 4. contingency line flow information
-    pr5 = Array{Any}(2*NBr-1,9)
+    pr5 = Array{Any}(2*NBr,9)
     # contingency ID
     pr5[1:NBr,1] = repeat(["0"],outer=[NBr]); # 0. base case
-    pr5[NBr+1:2*NBr-1,1] = repeat(["1"],outer=[NBrc]); # 1. contingency case
+    pr5[NBr+1:2*NBr,1] = repeat(["1"],outer=[NBr]); # 1. contingency case
     # line ID (not used in the evaluation process)
     for i in 1:NBr
         pr5[i,2] = "i_$i" # 0. base case
     end
 
-    for i in 1:NBrc
+    for i in 1:NBr
         pr5[NBr+i,2] = "i_$i" # 1. contingency case
     end
 
     # List of origin buses
-    #orig_bus = collect(brData[k].From for k in sort(collect(keys(brDList))));
+    orig_bus = collect(brDList[k].From for k in sort(collect(keys(brDList))));
 
     # List of destination buses
-    #dest_bus = collect(brData[k].To for k in sort(collect(keys(brDList))));
+    dest_bus = collect(brDList[k].To for k in sort(collect(keys(brDList))));
 
     # origin bus ID
-    pr5[1:NBr,3] = br_int[:,1]; # 0. base case
-    pr5[NBr+1:2*NBr-1,3] = br_intc[:,1]; # 1. contingency case
+    pr5[1:NBr,3] = orig_bus; # 0. base case
+    pr5[NBr+1:2*NBr,3] = orig_bus; # 1. contingency case
 
     # destination bus ID
-    pr5[1:NBr,4] = br_int[:,2]; # 0. base case
-    pr5[NBr+1:2*NBr-1,4] = br_intc[:,2]; # 1. contingency case
+    pr5[1:NBr,4] = dest_bus; # 0. base case
+    pr5[NBr+1:2*NBr,4] = dest_bus; # 1. contingency case
 
     # circuit ID
-    pr5[1:2*NBr-1,5] = repeat(["'BL'"],outer=[2*NBr-1]);
+    pr5[1:2*NBr,5] = repeat(["'BL'"],outer=[2*NBr]);
 
     # real power in megawatts at origin
     #=
-    originP0 = [];
+    originP = [];
     for (x,y) in zip(orig_bus, dest_bus)
-        push!(originP0,getvalue(pl)[x,y,1]*baseMVA) # 0. base case
+        push!(originP,getvalue(pl)[x,y,1]*baseMVA) # 0. base case
     end
     =#
     pr5[1:NBr,6] = Pf_k0*100;
-    #maximum(originP0 - Pf_k0*100)
     #=
-    originP1 = [];|
+    originP = [];
     for (x,y) in zip(orig_bus, dest_bus)
-        push!(originP1,getvalue(pl)[x,y,2]*baseMVA) # 1. contingency case
+        push!(originP,getvalue(pl)[x,y,2]*baseMVA) # 1. contingency case
     end
     =#
-    pr5[NBr+1:2*NBr-1,6] = Pf_k1*100
-    #maximum(originP1 - Pf_k1*100)
+    pr5[NBr+1:2*NBr,6] = Pf_k1*100;
+
     # reactive power in MVar at origin
     #=
-    originQ0 = [];
+    originQ = [];
     for (x,y) in zip(orig_bus, dest_bus)
-        push!(originQ0,getvalue(ql)[x,y,1]*baseMVA) # 0. base case
+        push!(originQ,getvalue(ql)[x,y,1]*baseMVA) # 0. base case
     end
     =#
     pr5[1:NBr,7] = Qf_k0*100;
-    #maximum(originQ0 - Qf_k0*100)
     #=
-    originQ1 = [];
+    originQ = [];
     for (x,y) in zip(orig_bus, dest_bus)
-        push!(originQ1,getvalue(ql)[x,y,2]*baseMVA) # 1. contingency case
+        push!(originQ,getvalue(ql)[x,y,2]*baseMVA) # 1. contingency case
     end
     =#
-    pr5[NBr+1:2*NBr-1,7] = Qf_k1*100
-    #maximum(originQ1 - Qf_k1*100)
+    pr5[NBr+1:2*NBr,7] = Qf_k1*100;
 
     # real power in megawatts at destination
     #=
-    destP0 = [];
+    destP = [];
     for (x,y) in zip(dest_bus, orig_bus)
-        push!(destP0,getvalue(pl)[x,y,1]*baseMVA) # 0. base case
+        push!(destP,getvalue(pl)[x,y,1]*baseMVA) # 0. base case
     end
     =#
     pr5[1:NBr,8] = Pt_k0*100;
-    #maximum(destP0 - Pt_k0*100)
     #=
-    destP1 = [];
+    destP = [];
     for (x,y) in zip(dest_bus, orig_bus)
-        push!(destP1,getvalue(pl)[x,y,2]*baseMVA) # 1. contingency case
+        push!(destP,getvalue(pl)[x,y,2]*baseMVA) # 1. contingency case
     end
     =#
-    pr5[NBr+1:2*NBr-1,8] = Pt_k1*100
-    #maximum(destP1 - Pt_k1*100)
+    pr5[NBr+1:2*NBr,8] = Pt_k1*100;
 
     # reactive power in MVar at destination
     #=
-    destQ0 = [];
+    destQ = [];
     for (x,y) in zip(dest_bus, orig_bus)
-        push!(destQ0,getvalue(ql)[x,y,1]*baseMVA) # 0. base case
+        push!(destQ,getvalue(ql)[x,y,1]*baseMVA) # 0. base case
     end
     =#
     pr5[1:NBr,9] = Qt_k0*100;
-    #maximum(destQ0 - Qt_k0*100)
     #=
-    destQ1 = [];
+    destQ = [];
     for (x,y) in zip(dest_bus, orig_bus)
-        push!(destQ1,getvalue(ql)[x,y,2]*baseMVA) # 1. contingency case
+        push!(destQ,getvalue(ql)[x,y,2]*baseMVA) # 1. contingency case
     end
     =#
-    pr5[NBr+1:2*NBr-1,9] = Qt_k1*100
-    #maximum(destQ1 - Qt_k1*100)
+    pr5[NBr+1:2*NBr,9] = Qt_k1*100;
     # Deleting row of contingency case
-    #=
     for i in size(pr5)[1]
         if pr5[i,1] == "1"
             for j in 1:NBr
@@ -240,9 +229,7 @@ function dPrint(PSCOPF,NGen,NBus,NBr,NBrc,NK,aL,Ct,Ctc,Cf,Cfc,Yf,Yfc,Yt,Ytc,br_i
             end
         end
     end
-    #
-    =#
-    pr5
+
     # Writing into the file solution2.txt
     open("solution2.txt", "w") do f2
         write(f2, "--contingency generator\r\n")
