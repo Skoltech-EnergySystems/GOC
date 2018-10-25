@@ -508,16 +508,16 @@ end
 sum(Ω)
 #--------------------------------- CONSTRAINTS -------------------------------
 # Nodal active power balance
-@constraint(PSCOPF, EqConstrP[i=1:NBus,k=1:NK], sum(Ω[i,g]*p[g,k] for g=1:NGen) - Pd[i] == sum(GL[i,j]*c[i,j] - BL[i,j]*s[i,j] for j=1:NBus));
+@constraint(PSCOPF, EqConstrP[i=1:NBus,k=1:NK], sum(Ω[i,g]*p[g,k] for g=1:NGen) - Pd[i] == sum(GL[i,j]*c[i,j,k] - BL[i,j]*s[i,j,k] for j=1:NBus));
 # Nodal reactive power balance
-@constraint(PSCOPF, EqConstrQ[i=1:NBus,k=1:NK], sum(Ω[i,g]*q[g,k] for g=1:NGen) - Qd[i] == sum(-BL[i,j]*c[i,j] - GL[i,j]*s[i,j] for j=1:NBus));
+@constraint(PSCOPF, EqConstrQ[i=1:NBus,k=1:NK], sum(Ω[i,g]*q[g,k] for g=1:NGen) - Qd[i] == sum(-BL[i,j]*c[i,j,k] - GL[i,j]*s[i,j,k] for j=1:NBus));
 
 # Constraints on auxiliary variable c
-@constraint(PSCOPF, SymmetryC[i=1:NBus, j=1:NBus; (GL[i,j] + BL[i,j]≠0.)], c[i,j] == c[j,i]);
+@constraint(PSCOPF, SymmetryC[i=1:NBus, j=1:NBus, k=1:NK; (GL[i,j] + BL[i,j]≠0.)], c[i,j,k] == c[j,i,k]);
 # Constraints on auxiliary variable s
-@constraint(PSCOPF, SymmetryS[i=1:NBus, j=1:NBus; ((GL[i,j] + BL[i,j]≠0.)&&i≠j)], s[i,j] == -s[j,i]);
+@constraint(PSCOPF, SymmetryS[i=1:NBus, j=1:NBus, k=1:NK; ((GL[i,j] + BL[i,j]≠0.)&&i!=j)], s[i,j,k] == -s[j,i,k]);
 # SOCP relaxation
-@constraint(PSCOPF, SOCP[i=1:NBus, j=1:NBus; (GL[i,j] + BL[i,j]≠0.)], c[i,j]^2 + s[i,j]^2 + (0.5*(c[i,i]-c[j,j]))^2 ≤ (0.5*(c[i,i]+c[j,j]))^2);
+@constraint(PSCOPF, SOCP[i=1:NBus, j=1:NBus, k=1:NK; (GL[i,j] + BL[i,j]≠0.)], c[i,j,k]^2 + s[i,j,k]^2 + (0.5*(c[i,i,k]-c[j,j,k]))^2 ≤ (0.5*(c[i,i,k]+c[j,j,k]))^2);
 # Vm => 0.9
 @constraint(PSCOPF, LimitLCii[i=1:NBus,k=1:NK], 0.81 ≤ c[i,i,k]);
 # Vm <= 1.1
@@ -591,6 +591,34 @@ for i=1:NBus
     Vmc_list = [Vmc_list;Vmc]
 end
 Vmc_list
+#=
+sbase = getvalue(s)[:,:,2]
+for i = 1:NBus
+    for j = 1:NBus
+        if cbase[i,j] != 0 && i < j
+            println(i,j)
+        end
+    end
+end
+=#
+#=
+println("c_diag")
+c_diag = getvalue(c)[:,:,1]
+for i = 1:NBus
+    if c_diag[i,i] != 0
+        println(i)
+    end
+end
+
+println("s_diag")
+s_diag = getvalue(s)[:,:,1]
+for i = 1:NBus
+    if s_diag[i,i] != 0
+        println(i)
+    end
+end
+maximum(getvalue(s))
+=#
 ################################ Deriving FROM and TO injections ##############
 #=
 println("Deriving FROM and TO injections")
