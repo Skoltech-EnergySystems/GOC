@@ -1,8 +1,9 @@
 #Grid Optimization Competition
 #cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech_2018/Grid Competition/Code/GOC_v15_dictionaries")
 using CSV, JuMP;
-using Ipopt;
-using Gurobi, Mosek
+#using Ipopt;
+#using Mosek
+using Gurobi
 println("Data reading")
     tic()
 # Input files
@@ -20,7 +21,7 @@ genFile = "RTS96-1_generator.csv"
 # Preventive Security Constrained Optimal Power Flow
 #PSCOPF = Model(solver=IpoptSolver(print_level=0))
 #PSCOPF = Model(solver=IpoptSolver())
-PSCOPF = Model(solver=GurobiSolver())
+PSCOPF = Model(solver=GurobiSolver(InfUnbdInfo=1))
 # Need to define environment for mosek first: check mosek.jl package in julia. some command containing myhome
 #env = Mosek.Env();
 #PSCOPF = Model(solver=MosekSolver())
@@ -537,8 +538,8 @@ sum(Ω)
 (-s[br_int[l,2],br_int[l,1],k]*GL[br_int[l,2],br_int[l,1]] - c[br_int[l,2],br_int[l,1],k]*BL[br_int[l,2],br_int[l,1]] + c[br_int[l,2],br_int[l,2],k]*BL[br_int[l,2],br_int[l,2]])*aL[k,l]);
 
 # Line limits on Apparent Power
-@NLconstraint(PSCOPF, FlowLimits_ij[l=1:NBr,k=1:NK], (pl[br_int[l,1],br_int[l,2],k]^2 + ql[br_int[l,1],br_int[l,2],k]^2) <= RATE_A[l]^2);
-@NLconstraint(PSCOPF, FlowLimits_ji[l=1:NBr,k=1:NK], (pl[br_int[l,2],br_int[l,1],k]^2 + ql[br_int[l,2],br_int[l,1],k]^2) <= RATE_A[l]^2);
+#@constraint(PSCOPF, FlowLimits_ij[l=1:NBr,k=1:NK], (pl[br_int[l,1],br_int[l,2],k]^2 + ql[br_int[l,1],br_int[l,2],k]^2) <= RATE_A[l]^2);
+#@constraint(PSCOPF, FlowLimits_ji[l=1:NBr,k=1:NK], (pl[br_int[l,2],br_int[l,1],k]^2 + ql[br_int[l,2],br_int[l,1],k]^2) <= RATE_A[l]^2);
 
 # Generator active power output upper bound
 @constraint(PSCOPF, GenULimP[g=1:NGen,k=1:NK], p[g,k] <= Pmax[g]);
@@ -562,9 +563,9 @@ total_part_factor = sum(part_factor);
 @objective(PSCOPF, Min, sum(a[g]*(p[g,1])^2 + b[g]*p[g,1] + con[g]  for g=1:NGen))
 
 ################################# AGC #########################################
-# Voltage control only on generator buses (leads to unknown in Julia)
-#@NLconstraint(PSCOPF, AGCLower[g=1:NGen, i=1:NBus], (q[g,2] - Qmin[g])*(sqrt(c[i,i,2]) - sqrt(c[i,i,1])) <= 0);
-#@NLconstraint(PSCOPF, AGCUpper[g=1:NGen, i=1:NBus], (q[g,2] - Qmax[g])*(sqrt(c[i,i,2]) - sqrt(c[i,i,1])) <= 0);
+# Voltage control only on generator buses: non-convex (leads to unknown in Julia ipopt)
+#@constraint(PSCOPF, AGCLower[g=1:NGen, i=1:NBus], (q[g,2] - Qmin[g])*(c[i,i,2] - c[i,i,1]) <= 0);
+#@constraint(PSCOPF, AGCUpper[g=1:NGen, i=1:NBus], (q[g,2] - Qmax[g])*(c[i,i,2] - c[i,i,1]) <= 0);
 
 ## resolution
 println("Model solution")
