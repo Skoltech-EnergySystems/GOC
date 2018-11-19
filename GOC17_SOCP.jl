@@ -470,7 +470,7 @@ end
 ############################# SET SIZES ######################################
 # Number of contingencies
 NK = size(aL,1);
-
+gData
 ############################# SET LINES ######################################
 links = Array{Tuple{Int16, Int16}}(NBr);
 for k=1:NBr

@@ -491,15 +491,15 @@ println("Building the model")
 ######################## Hot start: from SOCP relaxation ######################
 # k0 - base case, k1 - contingency case
 # power generations
-#setvalue(p[1:NGen, 1:NK],p_SOCP)
-#setvalue(q[1:NGen, 1:NK],q_SOCP)
+setvalue(p[1:NGen, 1:NK],p_SOCP)
+setvalue(q[1:NGen, 1:NK],q_SOCP)
 
  # power flows
 setvalue(pl[1:NBus, 1:NBus, 1:NK],pl_SOCP)
 setvalue(ql[1:NBus, 1:NBus, 1:NK],ql_SOCP)
 
 # voltage magnitude
-#setvalue(V[1:NBus, 1:NK],V_SOCP)
+setvalue(V[1:NBus, 1:NK],V_SOCP)
 
 # "generators-buses" incidence matrix
 Ω = zeros(NBus,NGen);
