@@ -1,51 +1,54 @@
 # definitions of the data type
 
 type busData
-    ID_ext :: Int64
-    ID_int :: Int64
-    Name :: String
-    gen :: Array{Any,1}
+  ID :: Int64
+  Name :: String
+  gen :: Array{Any,1}
 
-    Vmax :: Float64
-    Vmin :: Float64
-    Pd :: Float64
-    Qd :: Float64
+  Vmax :: Float64
+  Vmin :: Float64
+  Pd :: Float64
+  Qd :: Float64
 
-    gsh :: Float64
-    bsh :: Float64
- end
+  gsh :: Float64
+  bsh :: Float64
+end
 
 type genData
-    ID_ext :: Any
-    Name :: Any
-    Loc :: Int64
-    ID_int :: Any
+  ID :: Any
+  Name :: Any
+  Loc :: Int64
 
-    cn :: Array{Int64,1}
-    cParams :: Dict{Any,Any}
+  cn :: Array{Int64,1}
+  cParams :: Dict{Any,Any}
 
-    Pmax :: Float64
-    Pmin :: Float64
-    Qmax :: Float64
-    Qmin :: Float64
+  Pmax :: Float64
+  Pmin :: Float64
+  Qmax :: Float64
+  Qmin :: Float64
 
-    alpha :: Float64
+  alpha :: Float64
 end
 
 type branchData
-    From :: Int64
-    To :: Int64
-    CKT :: Any
-    ID_ext :: Any
-    #revID :: Any
+  From :: Int64
+  To :: Int64
+  CKT :: Any
+  ID :: Any
+  revID :: Any
 
-    r :: Float64
-    x :: Float64
-    bc :: Float64
+  r :: Float64
+  x :: Float64
+  g :: Float64
+  b :: Float64
+  bc :: Float64
 
-    t :: Float64
-    tau :: Float64
- end
+  t :: Float64
+  zeroImpe :: Bool
+  tau :: Float64
+  tauprime :: Float64
+  thetatr :: Float64
+end
 
 type fixedData
   baseMVA :: Float64

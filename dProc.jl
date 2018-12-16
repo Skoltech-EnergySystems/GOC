@@ -1,55 +1,65 @@
+# data processing for ARPA-E Competition Phase 0
+
 # preprocessing: read in the data and divide it into segments
 function preProc(rawFile)
+  rawData = readdlm(rawFile,',', skipblanks=false);
 
-    rawData = readdlm(rawFile,',', skipblanks=false);
-    n,m = size(rawData);
-    busStartL = 4; # first three lines are headers
-    busEndL = 0;
-    loadStartL = 0;
-    loadEndL = 0;
-    shuntStartL = 0;
-    shuntEndL = 0;
-    genStartL = 0;
-    genEndL = 0;
-    branchStartL = 0;
-    branchEndL = 0;
-    transformerStartL = 0;
-    transformerEndL = 0;
-    for i in 1:n
-      if contains(string(rawData[i,1]),"END OF BUS DATA")
-        busEndL = i - 1;
-        loadStartL = i + 1;
-      end
-      if contains(string(rawData[i,1]),"END OF LOAD DATA")
-        loadEndL = i - 1;
-        shuntStartL = i + 1;
-      end
-      if contains(string(rawData[i,1]),"END OF FIXED SHUNT DATA")
-        shuntEndL = i - 1;
-        genStartL = i + 1;
-      end
-      if contains(string(rawData[i,1]),"END OF GENERATOR DATA")
-        genEndL = i - 1;
-        branchStartL = i + 1;
-      end
-      if contains(string(rawData[i,1]),"END OF BRANCH DATA")
-        branchEndL = i - 1;
-        transformerStartL = i + 1;
-      end
-      if contains(string(rawData[i,1]),"END OF TRANSFORMER DATA")
-        transformerEndL = i - 1;
-      end
+  # separate the data into different segments
+  titleLine1 = rawData[1,:];
+#  println("titleLine1: ",titleLine1);
+  titleLine2 = rawData[2,:];
+#  println("titleLine2: ",titleLine2);
+  titleLine3 = rawData[3,:];
+#  println("titleLine3: ",titleLine3);
+  n,m = size(rawData);
+  busStartL = 4; # first three lines are headers
+  busEndL = 0
+  loadStartL = 0
+  loadEndL = 0
+  shuntStartL = 0
+  shuntEndL = 0
+  genStartL = 0
+  genEndL = 0
+  branchStartL = 0
+  branchEndL = 0
+  transformerStartL = 0
+  transformerEndL = 0
+  for i in 1:n
+    if contains(string(rawData[i,1]),"END OF BUS DATA")
+      busEndL = i - 1;
+      loadStartL = i + 1;
     end
+    if contains(string(rawData[i,1]),"END OF LOAD DATA")
+      loadEndL = i - 1;
+      shuntStartL = i + 1;
+    end
+    if contains(string(rawData[i,1]),"END OF FIXED SHUNT DATA")
+      shuntEndL = i - 1;
+      genStartL = i + 1;
+    end
+    if contains(string(rawData[i,1]),"END OF GENERATOR DATA")
+      genEndL = i - 1;
+      branchStartL = i + 1;
+    end
+    if contains(string(rawData[i,1]),"END OF BRANCH DATA")
+      branchEndL = i - 1;
+      transformerStartL = i + 1;
+    end
+    if contains(string(rawData[i,1]),"END OF TRANSFORMER DATA")
+      transformerEndL = i - 1;
+    end
+  end
 
-    baseMVA = rawData[1,2];
-    busSeg = rawData[busStartL:busEndL,:];
-    loadSeg = rawData[loadStartL:loadEndL,:];
-    shuntSeg = rawData[shuntStartL:shuntEndL,:];
-    genSeg = rawData[genStartL:genEndL,:];
-    branchSeg = rawData[branchStartL:branchEndL,:];
-    transformerSeg = rawData[transformerStartL:transformerEndL,:];
+  baseMVA = rawData[1,2];
+  busSeg = rawData[busStartL:busEndL,:];
+#  println("busSeg: ",busSeg);
+  loadSeg = rawData[loadStartL:loadEndL,:];
+  shuntSeg = rawData[shuntStartL:shuntEndL,:];
+  genSeg = rawData[genStartL:genEndL,:];
+  branchSeg = rawData[branchStartL:branchEndL,:];
+  transformerSeg = rawData[transformerStartL:transformerEndL,:];
 
-    return baseMVA,busSeg,loadSeg,shuntSeg,genSeg,branchSeg,transformerSeg;
+  return baseMVA,busSeg,loadSeg,shuntSeg,genSeg,branchSeg,transformerSeg;
 end
 
 # parse the data for each bus and generator
@@ -60,21 +70,25 @@ function busgenProc(baseMVA,busSeg,shuntSeg,loadSeg,genSeg,genFile)
   sn,sm = size(shuntSeg);
   ln,lm = size(loadSeg);
 
-  busSeg_int = collect(1:bn);
-  ### BUS DATA
   busList = [];
   busDList = Dict();
   busNo = 0;
   for i in 1:bn
     # build the bus item
-    busID_ext = busSeg[i,1];
-    busID_int = busSeg_int[i,1];
-    push!(busList,busID_ext);
+    busID = busSeg[i,1];
+#  println("busID: ",busID);
+    push!(busList,busID);
     busName = string(busSeg[i,2]);
+#  println("busName: ",busName);
     busVmax = busSeg[i,10];
+#  println("busVmax: ",busVmax);
     busVmin = busSeg[i,11];
-    busItem = busData(busID_ext,busID_int,busName,[],busVmax,busVmin,0,0,0,0);
-    busDList[busID_ext] = busItem;
+#  println("busVmin: ",busVmin);
+    busItem = busData(busID,busName,[],busVmax,busVmin,0,0,0,0);
+#  println("busItem: ",busItem);
+
+    # add the bus item to the dictionary
+    busDList[busID] = busItem;
   end
 
   # process the shuntSeg
@@ -95,6 +109,9 @@ function busgenProc(baseMVA,busSeg,shuntSeg,loadSeg,genSeg,genFile)
   genCostData,genCostTitle = readdlm(genFile,',',header = true);
   gcn,gcm = size(genCostData);
   genCost = Dict();
+#  println("gcn: ",gcn);
+#  println("gcm: ",gcm);
+#  println("genCostData: ",genCostData);
   for i in 1:gcn
     if !((genCostData[i,1],genCostData[i,2]) in keys(genCost))
       genCost[(genCostData[i,1],genCostData[i,2])] = Dict();
@@ -108,14 +125,12 @@ function busgenProc(baseMVA,busSeg,shuntSeg,loadSeg,genSeg,genFile)
   genList = [];
   genDList = Dict();
   for i in 1:gn
-    busID_ext = genSeg[i,1];
-    NGen = size(genSeg,1);
-    genID_int = (1:NGen)[i];
-    genLoc = busID_ext;
+    busID = genSeg[i,1];
+    genLoc = busID;
     genName = genSeg[i,2];
-    genID = (genLoc,genName,genID_int);
+    genID = (genLoc,genName);
     push!(genList,genID);
-    push!(busDList[busID_ext].gen,genID);
+    push!(busDList[busID].gen,genID);
 
     genQmax = genSeg[i,5]/baseMVA;
     genQmin = genSeg[i,6]/baseMVA;
@@ -134,13 +149,16 @@ function busgenProc(baseMVA,busSeg,shuntSeg,loadSeg,genSeg,genFile)
       end
     end
 
-    genItem = genData(busID_ext,genName,genLoc,genID_int,genCn,gencParams,genPmax,genPmin,genQmax,genQmin,genalpha);
+    genItem = genData(genID,genName,genLoc,genCn,gencParams,genPmax,genPmin,genQmax,genQmin,genalpha);
     genDList[genID] = genItem;
   end
-  return busList,busDList,genList,genDList;
-  end
 
-  function branchProc(baseMVA,branchSeg,transformerSeg)
+  return busList,busDList,genList,genDList;
+end
+#println(busDList)
+# parse the data for each branch
+function branchProc(baseMVA,branchSeg,transformerSeg)
+  # process the branchSeg
   brn,brm = size(branchSeg);
   brList = [];
   brListSingle = [];
@@ -149,19 +167,32 @@ function busgenProc(baseMVA,busSeg,shuntSeg,loadSeg,genSeg,genFile)
     brFrom = branchSeg[i,1];
     brTo = branchSeg[i,2];
     brCKT = branchSeg[i,3];
-    branchID_ext = (brFrom,brTo,brCKT);
+    branchID = (brFrom,brTo,brCKT);
+    bRevID = (brTo,brFrom,brCKT);
 
     brr = branchSeg[i,4];
     brx = branchSeg[i,5];
+    brg = brr/(brr^2 + brx^2);
+    brb = -brx/(brr^2 + brx^2);
     brbc = branchSeg[i,6];
     brt = branchSeg[i,7]/baseMVA;
 
-    brtau = 1;
-    brItem = branchData(brFrom,brTo,brCKT,branchID_ext,brr,brx,brbc,brt,brtau);
+    if (brr == 0)&(brx == 0)
+      brZeroImpe = true;
+    else
+      brZeroImpe = false;
+    end
 
-    push!(brList,branchID_ext);
-    push!(brListSingle,branchID_ext);
-    brDList[branchID_ext] = brItem;
+    brtau = 1;
+    brtauprime = 1;
+    brthetatr = 0;
+    brItem = branchData(brFrom,brTo,brCKT,branchID,bRevID,brr,brx,brg,brb,brbc,brt,brZeroImpe,brtau,brtauprime,brthetatr);
+    brRevItem = branchData(brTo,brFrom,brCKT,bRevID,branchID,brr,brx,brg,brb,brbc,brt,brZeroImpe,brtau,brtauprime,brthetatr);
+    push!(brList,branchID);
+    push!(brListSingle,branchID);
+    push!(brList,bRevID);
+    brDList[branchID] = brItem;
+    brDList[bRevID] = brRevItem;
   end
 
   # process the transformerSeg
@@ -174,41 +205,59 @@ function busgenProc(baseMVA,busSeg,shuntSeg,loadSeg,genSeg,genFile)
       lineNoNew = lineNo + 4;
     end
     trName = transformerSeg[lineNo,4];
-    trID_ext = (trFrom,trTo,trName);
+    trID = (trFrom,trTo,trName);
+    trRevID = (trTo,trFrom,trName);
 
     trr = transformerSeg[lineNo+1,1];
     trx = transformerSeg[lineNo+1,2];
+    trg = trr/(trr^2 + trx^2);
+    trb = -trx/(trr^2 + trx^2);
     trbc = 0;
     trt = transformerSeg[lineNo+2,4]/baseMVA;
 
-    trtau = transformerSeg[lineNo+2,1]/transformerSeg[lineNo+3,1];
-    trItem = branchData(trFrom,trTo,trName,trID_ext,trr,trx,trbc,trt,trtau);
+    if (trr == 0)&(trx == 0)
+      trZeroImpe = true;
+    else
+      trZeroImpe = false;
+    end
 
-    push!(brList,trID_ext);
-    push!(brListSingle,trID_ext);
-    brDList[trID_ext] = trItem;
+    trthetatr = -transformerSeg[lineNo+2,3];
+    trRevthetatr = transformerSeg[lineNo+2,3];
+    trtau = transformerSeg[lineNo+2,1]/transformerSeg[lineNo+3,1];
+    trtauprime = transformerSeg[lineNo+2,1]/transformerSeg[lineNo+3,1];
+    trRevtau = transformerSeg[lineNo+2,1]/transformerSeg[lineNo+3,1];
+    trRevtauprime = 1;
+    trItem = branchData(trFrom,trTo,trName,trID,trRevID,trr,trx,trg,trb,trbc,trt,trZeroImpe,trtau,trtauprime,trthetatr);
+    trRevItem = branchData(trTo,trFrom,trName,trRevID,trID,trr,trx,trg,trb,trbc,trt,trZeroImpe,trRevtau,trRevtauprime,trRevthetatr);
+
+    push!(brList,trID);
+    push!(brListSingle,trID);
+    push!(brList,trRevID);
+    brDList[trID] = trItem;
+    brDList[trRevID] = trRevItem;
     lineNo = lineNoNew;
   end
-  return brList,brListSingle,brDList;
-  end
 
-function contProc(contFile)
-contingency = CSV.read(contFile);
-contData,contTitle = readdlm(contFile,',',header = true);
-contn,contm = size(contData);
-contList = [];
-contDList = Dict();
-for i in 1:contn
-  contID = contData[i,1];
-  push!(contList,contID);
-  contType = contData[i,2];
-  if (contType == "B")|(contType == "T")
-    contLoc = [(contData[i,3],contData[i,4],contData[i,5])];
-  else
-    contLoc = [contData[i,3],contData[i,4]];
-  end
-  contItem = contingencyData(contID,contType,contLoc);
-  contDList[contID] = contItem;
+  return brList,brListSingle,brDList;
 end
-return contingency,contList,contDList;
+
+# process the contingency data
+function contProc(contFile)
+  contData,contTitle = readdlm(contFile,',',header = true);
+  contn,contm = size(contData);
+  contList = [];
+  contDList = Dict();
+  for i in 1:contn
+    contID = contData[i,1];
+    push!(contList,contID);
+    contType = contData[i,2];
+    if (contType == "B")|(contType == "T")
+      contLoc = [(contData[i,3],contData[i,4],contData[i,5]),(contData[i,4],contData[i,3],contData[i,5])];
+    else
+      contLoc = [contData[i,3],contData[i,4]];
+    end
+    contItem = contingencyData(contID,contType,contLoc);
+    contDList[contID] = contItem;
+  end
+  return contList,contDList;
 end
