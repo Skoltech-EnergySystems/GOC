@@ -1,5 +1,48 @@
-function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
-    # Extracting calculated generation values for base case
+function dPrint(PSCOPF,NGen,NBus,NBr,NK,aL,Ct,Cf,Yf,Yt,genSeg,busSeg,brList,brDList,baseMVA)
+    println("Deriving FROM and TO injections")
+    tic()
+    # Computed V in complex form for pre-contingency case
+    Vk0 = getvalue(PSCOPF[:V])[:,1];
+    δk0 = getvalue(PSCOPF[:δ])[:,1];
+    Vk0c = Vk0.*exp.(im*δk0);
+
+    # Computed V in complex form for post-contingency case
+    Vk1 = getvalue(PSCOPF[:V])[:,2];
+    δk1 = getvalue(PSCOPF[:δ])[:,2];
+    Vk1c = Vk1.*exp.(im*δk1);
+
+    # Apparent power FROM for pre-contingency case
+    Sf_k0 = Diagonal(Cf*Vk0c)*conj(Yf)*conj(Vk0c);
+    # Apparent power FROM for post-contingency case
+    Sf_k1 = Diagonal(Cf*Vk1c)*conj(Yf)*conj(Vk1c);
+
+    # Apparent power TO for pre-contingency case
+    St_k0 = Diagonal(Ct*Vk0c)*conj(Yt)*conj(Vk0c);
+    # Apparent power TO for post-contingency case
+    St_k1 = Diagonal(Ct*Vk1c)*conj(Yt)*conj(Vk1c);
+
+    # Active power FROM for pre-contingency case
+    Pf_k0 = real(Sf_k0);
+    # Active power FROM for post-contingency case
+    Pf_k1 = real(Sf_k1);
+
+    # Reactive power FROM for pre-contingency case
+    Qf_k0 = imag(Sf_k0);
+    # Real power FROM for post-contingency case
+    Qf_k1 = imag(Sf_k1);
+
+    # Active power TO for pre-contingency case
+    Pt_k0 = real(St_k0);
+    # Active power TO for post-contingency case
+    Pt_k1 = real(St_k1);
+
+    # Reactive power TO for pre-contingency case
+    Qt_k0 = imag(St_k0);
+    # Real power TO for post-contingency case
+    Qt_k1 = imag(St_k1);
+
+    toc()
+
     Pgen = [];
     for y in getvalue(PSCOPF[:p])[:,1]
         if abs(y) > 0.0001
@@ -15,35 +58,29 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     end
 
     #------------- Defining structure of the output file "solution1.txt" ----------
-    sizePg = size(genSeg)[1];
-    pr = Array{Any}(sizePg,4);
+    pr = Array{Any}(NGen,4);
     # Bus ID
-    pr[1:sizePg,1] = genSeg[:,1];
-    # Unit ID
-    pr[1:sizePg,2] = repeat(["'1 '"],outer=[sizePg]);
+    pr[1:NGen,1] = genSeg[:,1];
+    # Unit
+    pr[1:NGen,2] = repeat(["'1 '"],outer=[NGen]);
     # real power in megawatts
-    pr[1:sizePg,3] = Pgen;
+    pr[1:NGen,3] = Pgen;
     # reactive power in megaVar
-    pr[1:sizePg,4] = Qgen;
+    pr[1:NGen,4] = Qgen;
 
+    # Writing into the file "solution1.txt"
     open("solution1.txt", "w") do f1
-        write(f1, "--generation dispatch \n")
-        write(f1, "bus id,unit id,pg(MW),qg(MVar) \n")
-        for i in 1:sizePg
+        write(f1, "--generation dispatch\r\n")
+        write(f1, "bus id,unit id,pg(MW),qg(MVar)\r\n")
+        for i in 1:NGen
             write(f1, join(pr[i,:], ","))
-            write(f1, " \n")
+            write(f1, "\r\n")
         end
-        write(f1, "--end of generation dispatch \n")
+        write(f1, "--end of generation dispatch")
     end
-
+    #
+    ################################## SOLUTION2.TXT ##############################
     # Extracting calculated generation values for contingency case
-    Pgenk = [];
-    for y in getvalue(PSCOPF[:p])[:,2]
-        if abs(y) > 0.0001
-            push!(Pgenk,y*100)
-        end
-    end
-
     Qgenk = [];
     for z in getvalue(PSCOPF[:q])[:,2]
         if abs(z) > 0.0001
@@ -52,47 +89,21 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     end
 
     #------- Defining structure of the output file "solution2.txt" ---------------
-    pr2 = Array{Any}(sizePg,5);
+    pr2 = Array{Any}(NGen,5);
 
     ## 1. contingency generator dispatch
     # contingency ID
-    pr2[1:sizePg,1] = repeat(["1"],outer=[sizePg]);
+    pr2[1:NGen,1] = repeat(["1"],outer=[NGen]);
     # generator ID (not used in the evaluation process)
-    for i in 1:sizePg
+    for i in 1:NGen
         pr2[i,2] = "l_$i"
     end
     # bus ID
-    pr2[1:sizePg,3] = genSeg[:,1];
+    pr2[1:NGen,3] = genSeg[:,1];
     # unit ID
-    pr2[1:sizePg,4] = repeat(["'1 '"],outer=[sizePg]);
+    pr2[1:NGen,4] = repeat(["'1 '"],outer=[NGen]);
     # Reactive power in megaVar
-    pr2[1:sizePg,5] = Qgenk;
-
-    # Number of buses
-    NBus = size(BLGS,1);
-    # Number of branches (power lines and transformers)
-    NBr = size(Br,1);
-
-    # All lines and transformers are online
-    aL = transpose(ones(size(Br,1),1));
-    # Contingency FROM buses
-    Cont_FR = float(contingency[:,3])[1,1];
-    # Contingency TO buses
-    Cont_TO = float(contingency[:,4])[1,1];
-    # Number of contingencies
-    Cont_size = size(contingency,1);
-    # Contingency matrix
-    Br_ind=hcat(collect(1:size(Br,1)),Br[:,1:2]);
-    aL_loop = transpose(ones(size(Br,1),1))
-    for i=1:size(Br,1)
-        if (Br_ind[i,2]==Cont_FR && Br_ind[i,3]==Cont_TO)
-            aL_loop[1,i]=0;
-            aL=vcat(aL,aL_loop)
-        end
-    end
-
-    # Number of contingencies
-    NK = size(aL,1);
+    pr2[1:NGen,5] = Qgenk;
 
     ## 2. contingency bus information
     pr3 = Array{Any}(2*NBus,4);
@@ -100,8 +111,8 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     pr3[1:NBus,1] = repeat(["0"],outer=[NBus]); # 0. base case
     pr3[NBus+1:2*NBus,1] = repeat(["1"],outer=[NBus]); # 1. contingency case
     # bus ID
-    pr3[1:NBus,2] = round.(Int,BLGS[:,1]); # 0. base case
-    pr3[NBus+1:2*NBus,2] = round.(Int,BLGS[:,1]); # 1. contingency case
+    pr3[1:NBus,2] = busSeg[:,1]; # 0. base case
+    pr3[NBus+1:2*NBus,2] = busSeg[:,1]; # 1. contingency case
     # Voltage in per unit
     pr3[1:NBus,3] = getvalue(PSCOPF[:V])[:,1]; # 0. base case
     pr3[NBus+1:2*NBus,3] = getvalue(PSCOPF[:V])[:,2]; # 1. contingency case
@@ -120,77 +131,100 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
     pr5[1:NBr,1] = repeat(["0"],outer=[NBr]); # 0. base case
     pr5[NBr+1:2*NBr,1] = repeat(["1"],outer=[NBr]); # 1. contingency case
     # line ID (not used in the evaluation process)
-    pr5[1:2*NBr,2] = repeat(["'BL'"],outer=[2*NBr]);
+    for i in 1:NBr
+        pr5[i,2] = "i_$i" # 0. base case
+    end
+
+    for i in 1:NBr
+        pr5[NBr+i,2] = "i_$i" # 1. contingency case
+    end
+
+    # List of origin buses
+    orig_bus = collect(brDList[k].From for k in sort(collect(keys(brDList))));
+
+    # List of destination buses
+    dest_bus = collect(brDList[k].To for k in sort(collect(keys(brDList))));
+
     # origin bus ID
-    pr5[1:NBr,3] = round.(Int,Br[:,1]); # 0. base case
-    pr5[NBr+1:2*NBr,3] = round.(Int,Br[:,1]); # 1. contingency case
+    pr5[1:NBr,3] = orig_bus; # 0. base case
+    pr5[NBr+1:2*NBr,3] = orig_bus; # 1. contingency case
+
     # destination bus ID
-    pr5[1:NBr,4] = round.(Int,Br[:,2]); # 0. base case
-    pr5[NBr+1:2*NBr,4] = round.(Int,Br[:,2]); # 1. contingency case
+    pr5[1:NBr,4] = dest_bus; # 0. base case
+    pr5[NBr+1:2*NBr,4] = dest_bus; # 1. contingency case
+
     # circuit ID
-    for i in 1:NBr
-        pr5[i,5] = "i_$i 'BL'" # 0. base case
-    end
+    pr5[1:2*NBr,5] = repeat(["'BL'"],outer=[2*NBr]);
 
-    for i in 1:NBr
-        pr5[NBr+i,5] = "i_$i 'BL'" # 1. contingency case
-    end
     # real power in megawatts at origin
+    #=
     originP = [];
-    for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
-        push!(originP,getvalue(PSCOPF[:pl])[x,y,1]*baseMVA) # 0. base case
+    for (x,y) in zip(orig_bus, dest_bus)
+        push!(originP,getvalue(pl)[x,y,1]*baseMVA) # 0. base case
     end
-    pr5[1:NBr,6] = originP;
+    =#
+    pr5[1:NBr,6] = Pf_k0*100;
+    #=
+    originP = [];
+    for (x,y) in zip(orig_bus, dest_bus)
+        push!(originP,getvalue(pl)[x,y,2]*baseMVA) # 1. contingency case
+    end
+    =#
+    pr5[NBr+1:2*NBr,6] = Pf_k1*100;
 
-    originP = [];
-    for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
-        push!(originP,getvalue(PSCOPF[:pl])[x,y,2]*baseMVA) # 1. contingency case
-    end
-    pr5[NBr+1:2*NBr,6] = originP;
     # reactive power in MVar at origin
+    #=
     originQ = [];
-    for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
-        push!(originQ,getvalue(PSCOPF[:ql])[x,y,1]*baseMVA) # 0. base case
+    for (x,y) in zip(orig_bus, dest_bus)
+        push!(originQ,getvalue(ql)[x,y,1]*baseMVA) # 0. base case
     end
-    pr5[1:NBr,7] = originQ;
-
+    =#
+    pr5[1:NBr,7] = Qf_k0*100;
+    #=
     originQ = [];
-    for (x,y) in zip(round.(Int,Br[:,1]), round.(Int,Br[:,2]))
-        push!(originQ,getvalue(PSCOPF[:ql])[x,y,2]*baseMVA) # 1. contingency case
+    for (x,y) in zip(orig_bus, dest_bus)
+        push!(originQ,getvalue(ql)[x,y,2]*baseMVA) # 1. contingency case
     end
-    pr5[NBr+1:2*NBr,7] = originQ;
+    =#
+    pr5[NBr+1:2*NBr,7] = Qf_k1*100;
 
     # real power in megawatts at destination
+    #=
     destP = [];
-    for (x,y) in zip(round.(Int,Br[:,2]), round.(Int,Br[:,1]))
-        push!(destP,getvalue(PSCOPF[:pl])[x,y,1]*baseMVA) # 0. base case
+    for (x,y) in zip(dest_bus, orig_bus)
+        push!(destP,getvalue(pl)[x,y,1]*baseMVA) # 0. base case
     end
-    pr5[1:NBr,8] = destP;
-
+    =#
+    pr5[1:NBr,8] = Pt_k0*100;
+    #=
     destP = [];
-    for (x,y) in zip(round.(Int,Br[:,2]), round.(Int,Br[:,1]))
-        push!(destP,getvalue(PSCOPF[:pl])[x,y,2]*baseMVA) # 1. contingency case
+    for (x,y) in zip(dest_bus, orig_bus)
+        push!(destP,getvalue(pl)[x,y,2]*baseMVA) # 1. contingency case
     end
-    pr5[NBr+1:2*NBr,8] = destP;
+    =#
+    pr5[NBr+1:2*NBr,8] = Pt_k1*100;
 
     # reactive power in MVar at destination
+    #=
     destQ = [];
-    for (x,y) in zip(round.(Int,Br[:,2]), round.(Int,Br[:,1]))
-        push!(destQ,getvalue(PSCOPF[:ql])[x,y,1]*baseMVA) # 0. base case
+    for (x,y) in zip(dest_bus, orig_bus)
+        push!(destQ,getvalue(ql)[x,y,1]*baseMVA) # 0. base case
     end
-    pr5[1:NBr,9] = destQ;
-
+    =#
+    pr5[1:NBr,9] = Qt_k0*100;
+    #=
     destQ = [];
-    for (x,y) in zip(round.(Int,Br[:,2]), round.(Int,Br[:,1]))
-        push!(destQ,getvalue(PSCOPF[:ql])[x,y,2]*baseMVA) # 1. contingency case
+    for (x,y) in zip(dest_bus, orig_bus)
+        push!(destQ,getvalue(ql)[x,y,2]*baseMVA) # 1. contingency case
     end
-    pr5[NBr+1:2*NBr,9] = destQ;
+    =#
+    pr5[NBr+1:2*NBr,9] = Qt_k1*100;
     # Deleting row of contingency case
     for i in size(pr5)[1]
         if pr5[i,1] == "1"
             for j in 1:NBr
                 if aL[2,j] == 0
-                    pr5 = pr5[setdiff(1:end,j+NBr),:]
+                    pr5 = pr5[1:size(pr5,1) .!= j+NBr,: ]
                 end
             end
         end
@@ -198,34 +232,33 @@ function dPrint(PSCOPF, genSeg, BLGS, Br, contingency, baseMVA)
 
     # Writing into the file solution2.txt
     open("solution2.txt", "w") do f2
-        write(f2, "--contingency generator \n")
-        write(f2, "conID,genID,busID,unitID,q(MW) \n")
+        write(f2, "--contingency generator\r\n")
+        write(f2, "conID,genID,busID,unitID,q(MVar)\r\n")
         for i in 1:size(pr2)[1]
             write(f2, join(pr2[i,:], ","))
-            write(f2, " \n")
+            write(f2, "\r\n")
         end
-        write(f2, "--end of contingency generator \n")
-        write(f2, "--bus \n")
-        write(f2, "contingency id,bus id,v(pu),theta(deg) \n")
+        write(f2, "--end of contingency generator\r\n")
+        write(f2, "--bus\r\n")
+        write(f2, "contingency id,bus id,v(pu),theta(deg)\r\n")
         for i in 1:size(pr3)[1]
             write(f2, join(pr3[i,:], ","))
-            write(f2, " \n")
+            write(f2, "\r\n")
         end
-        write(f2, "--end of bus \n")
-        write(f2, "--Delta \n")
-        write(f2, "contingency id,Delta(MW) \n")
+        write(f2, "--end of bus\r\n")
+        write(f2, "--Delta\r\n")
+        write(f2, "contingency id,Delta(MW)\r\n")
         for i in 1:size(pr4)[1]
             write(f2, join(pr4[i,:], ","))
-            write(f2, " \n")
+            write(f2, "\r\n")
         end
-        write(f2, "--end of Delta \n")
-        write(f2, "--line flow \n")
-        write(f2, "contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar) \n")
+        write(f2, "--end of Delta\r\n")
+        write(f2, "--line flow\r\n")
+        write(f2, "-contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar)\r\n")
         for i in 1:size(pr5)[1]
             write(f2, join(pr5[i,:], ","))
-            write(f2, " \n")
+            write(f2, "\r\n")
         end
-        write(f2, "--end of line flow \n")
+        write(f2, "--end of line flow\r\n")
     end
-#    return f1, f2
 end

@@ -1,6 +1,5 @@
 # preprocessing: read in the data and divide it into segments
-using CSV;
-function dProc(rawFile, genFile, contFile)
+function preProc(rawFile)
 
     rawData = readdlm(rawFile,',', skipblanks=false);
     n,m = size(rawData);
@@ -50,183 +49,166 @@ function dProc(rawFile, genFile, contFile)
     branchSeg = rawData[branchStartL:branchEndL,:];
     transformerSeg = rawData[transformerStartL:transformerEndL,:];
 
-    # Generator cost function
-    gen_cost = CSV.read(genFile);
-    gen_cost = convert(Array,gen_cost);
+    return baseMVA,busSeg,loadSeg,shuntSeg,genSeg,branchSeg,transformerSeg;
+end
 
-    # Contingency
-    contingency = CSV.read(contFile);
+# parse the data for each bus and generator
+function busgenProc(baseMVA,busSeg,shuntSeg,loadSeg,genSeg,genFile)
+  # process the busSeg
+  bn,bm = size(busSeg);
+  gn,gm = size(genSeg);
+  sn,sm = size(shuntSeg);
+  ln,lm = size(loadSeg);
 
-    #---------------------------------- 2. DEFINING VARIABLES -----------------------------------#
-    #################### Bus, load, Generator, Shunt table ########################
-    # 1: Bus ID
-    # 2: base KV
-    # 3: bus type
-    # 4: Vm, pu
-    # 5: Va, rad
-    # 6: normal Vmax, pu
-    # 7: normal Vmin, pu
-    # 8: emergency Vmax, pu
-    # 9: emergency Vmin, pu
-    # 10: Pd, pu
-    # 11: Qd, pu
-    # 12: genSeg, pu
-    # 13: Qg, pu
-    # 14: Qmax, pu
-    # 15: Qmin, pu
-    # 16: Vg
-    # 17: baseMVA
-    # 18: Pmax, pu
-    # 19: Pmin, pu
-    # 20: Gs, pu
-    # 21: Bs, pu
-    # 22. Constant term c in cost function
-    # 23. Linear term b in cost function
-    # 24. Quadratic term a in cost function
-    # 25. Participation factor of generator
+  busSeg_int = collect(1:bn);
+  ### BUS DATA
+  busList = [];
+  busDList = Dict();
+  busNo = 0;
+  for i in 1:bn
+    # build the bus item
+    busID_ext = busSeg[i,1];
+    busID_int = busSeg_int[i,1];
+    push!(busList,busID_ext);
+    busName = string(busSeg[i,2]);
+    busVmax = busSeg[i,10];
+    busVmin = busSeg[i,11];
+    busItem = busData(busID_ext,busID_int,busName,[],busVmax,busVmin,0,0,0,0);
+    busDList[busID_ext] = busItem;
+  end
 
-    # Own created BLGS for data extraction with 25 columns
-    BLGS = zeros(size(busSeg[:,1],1),25);
-    # Bus ID
-    BLGS[:,1] = busSeg[:,1];
-    # base kVA
-    BLGS[:,2] = busSeg[:,3];
-    # bus Type
-    BLGS[:,3] = zeros(size(busSeg[:,1],1),1);
-    # Initial voltage magnitude
-    BLGS[:,4] = ones(size(busSeg[:,1],1),1);
-    # Initial voltage Angle
-    BLGS[:,5] = zeros(size(busSeg[:,1],1),1);
-    # normal Vmax
-    BLGS[:,6] = busSeg[:,10];
-    # normal Vmin
-    BLGS[:,7] = busSeg[:,11];
-    # emergency Vmax
-    BLGS[:,8] = busSeg[:,10];
-    # emergency Vmin
-    BLGS[:,9] = busSeg[:,11];
-    # P demand
-    Pd = hcat(loadSeg[:,1],loadSeg[:,6]/baseMVA);
-    for i = 1:size(Pd,1)
-        for j = 1:size(BLGS,1)
-            if BLGS[j,1] == Pd[i,1]
-                BLGS[j,10] = Pd[i,2]
-            end
-        end
-    end
+  # process the shuntSeg
+  for i in 1:sn
+    busID = shuntSeg[i,1];
+    busDList[busID].gsh += shuntSeg[i,4]/baseMVA;
+    busDList[busID].bsh += shuntSeg[i,5]/baseMVA;
+  end
 
-    # Q demand
-    Qd = hcat(loadSeg[:,1],loadSeg[:,7]/baseMVA);
-    for i = 1:size(Qd,1)
-        for j = 1:size(BLGS,1)
-            if BLGS[j,1] == Qd[i,1]
-                BLGS[j,11] = Qd[i,2]
-            end
-        end
+  # process the loadSeg
+  for i in 1:ln
+    busID = loadSeg[i,1];
+    busDList[busID].Pd += loadSeg[i,6]/baseMVA;
+    busDList[busID].Qd += loadSeg[i,7]/baseMVA;
+  end
+
+  # process the cost data from genFile
+  genCostData,genCostTitle = readdlm(genFile,',',header = true);
+  gcn,gcm = size(genCostData);
+  genCost = Dict();
+  for i in 1:gcn
+    if !((genCostData[i,1],genCostData[i,2]) in keys(genCost))
+      genCost[(genCostData[i,1],genCostData[i,2])] = Dict();
+      genCost[(genCostData[i,1],genCostData[i,2])][genCostData[i,3]] = genCostData[i,4];
+    else
+      genCost[(genCostData[i,1],genCostData[i,2])][genCostData[i,3]] = genCostData[i,4];
     end
-    # P generation
-    BLGS[:,12] = ones(size(busSeg[:,1],1),1);
-    # Q generation
-    BLGS[:,13] = ones(size(busSeg[:,1],1),1);
-    # Q max
-    Qmax = hcat(genSeg[:,1],genSeg[:,5]/baseMVA);
-    for i = 1:size(Qmax,1)
-        for j = 1:size(BLGS,1)
-            if BLGS[j,1] == Qmax[i,1]
-                BLGS[j,14] = Qmax[i,2]
-            end
-        end
-    end
-    # Q min
-    Qmin = hcat(genSeg[:,1],genSeg[:,6]/baseMVA);
-    for i = 1:size(Qmin,1)
-        for j = 1:size(BLGS,1)
-            if BLGS[j,1] == Qmin[i,1]
-                BLGS[j,15] = Qmin[i,2]
-            end
-        end
-    end
-    # Voltage magnitude on generator
-    BLGS[:,16] = ones(size(busSeg[:,1],1),1);
-    # P max
-    Pmax = hcat(genSeg[:,1],genSeg[:,17]/baseMVA);
-    for i = 1:size(Pmax,1)
-        for j = 1:size(BLGS,1)
-            if BLGS[j,1] == Pmax[i,1]
-                BLGS[j,18] = Pmax[i,2]
-            end
-        end
-    end
-    # P Min
-    Pmin = hcat(genSeg[:,1],genSeg[:,18]/baseMVA);
-    for i = 1:size(Pmin,1)
-        for j = 1:size(BLGS,1)
-            if BLGS[j,1] == Pmin[i,1]
-                BLGS[j,19] = Pmin[i,2]
-            end
-        end
-    end
-    # Conductance Gs
-    Gs = hcat(shuntSeg[:,1],shuntSeg[:,4]/baseMVA);
-    for i = 1:size(Gs,1)
-        for j = 1:size(BLGS,1)
-            if BLGS[j,1] == Gs[i,1]
-                BLGS[j,20] = Gs[i,2]
-            end
-        end
-    end
-    # Susceptance Bs
-    Bs = hcat(shuntSeg[:,1],shuntSeg[:,5]/baseMVA);
-    for i = 1:size(Bs,1)
-        for j = 1:size(BLGS,1)
-            if BLGS[j,1] == Bs[i,1]
-                BLGS[j,21] = Bs[i,2]
-            end
-        end
+  end
+
+  # process the genSeg
+  genList = [];
+  genDList = Dict();
+  for i in 1:gn
+    busID_ext = genSeg[i,1];
+    NGen = size(genSeg,1);
+    genID_int = (1:NGen)[i];
+    genLoc = busID_ext;
+    genName = genSeg[i,2];
+    genID = (genLoc,genName,genID_int);
+    push!(genList,genID);
+    push!(busDList[busID_ext].gen,genID);
+
+    genQmax = genSeg[i,5]/baseMVA;
+    genQmin = genSeg[i,6]/baseMVA;
+    genPmax = genSeg[i,17]/baseMVA;
+    genPmin = genSeg[i,18]/baseMVA;
+
+    genCn = [];
+    gencParams = Dict();
+    genalpha = 1;
+    for j in keys(genCost[(genLoc,genName)])
+      if j != 9
+        push!(genCn,j);
+        gencParams[j] = genCost[(genLoc,genName)][j];
+      else
+        genalpha = genCost[(genLoc,genName)][j];
+      end
     end
 
-    ## Generation cost and participation factor
-    for i in unique(gen_cost[:,1])
-        index = findfirst(gen_cost[:,1],i)
-        BLGS[i,22:25] = gen_cost[index:index+3,4]
+    genItem = genData(busID_ext,genName,genLoc,genID_int,genCn,gencParams,genPmax,genPmin,genQmax,genQmin,genalpha);
+    genDList[genID] = genItem;
+  end
+  return busList,busDList,genList,genDList;
+  end
+
+  function branchProc(baseMVA,branchSeg,transformerSeg)
+  brn,brm = size(branchSeg);
+  brList = [];
+  brListSingle = [];
+  brDList = Dict();
+  for i in 1:brn
+    brFrom = branchSeg[i,1];
+    brTo = branchSeg[i,2];
+    brCKT = branchSeg[i,3];
+    branchID_ext = (brFrom,brTo,brCKT);
+
+    brr = branchSeg[i,4];
+    brx = branchSeg[i,5];
+    brbc = branchSeg[i,6];
+    brt = branchSeg[i,7]/baseMVA;
+
+    brtau = 1;
+    brItem = branchData(brFrom,brTo,brCKT,branchID_ext,brr,brx,brbc,brt,brtau);
+
+    push!(brList,branchID_ext);
+    push!(brListSingle,branchID_ext);
+    brDList[branchID_ext] = brItem;
+  end
+
+  # process the transformerSeg
+  trn,trm = size(transformerSeg);
+  lineNo = 1;
+  while lineNo <= trn
+    trFrom = transformerSeg[lineNo,1];
+    trTo = transformerSeg[lineNo,2];
+    if transformerSeg[lineNo,3] == 0
+      lineNoNew = lineNo + 4;
     end
+    trName = transformerSeg[lineNo,4];
+    trID_ext = (trFrom,trTo,trName);
 
-    ################### BRANCHES TABLE (power lines and transformers )#############
-    # 1 : FROM
-    # 2 : TO
-    # 3 : r
-    # 4 : x
-    # 5 : b
-    # 6 : RATE A
-    # 7 : Kt
+    trr = transformerSeg[lineNo+1,1];
+    trx = transformerSeg[lineNo+1,2];
+    trbc = 0;
+    trt = transformerSeg[lineNo+2,4]/baseMVA;
 
-    # size of branch matrix
-    # Number of lines
-    NL = size(branchSeg,1);
-    # NUmber of transformers
-    NT = Int(size(transformerSeg,1)/4);
-    # size of branch matrix
-    Br = zeros(NL + NT,7);
-    # From buses
-    Br[1:NL,1] = branchSeg[:,1];
-    Br[NL + 1 : NL + NT,1] = transformerSeg[range(1,4,NT),1];
-    # To buses
-    Br[1:size(branchSeg,1),2] = branchSeg[:,2];
-    Br[size(branchSeg,1)+1:size(branchSeg,1)+3,2] = transformerSeg[[1,5,9],2];
-    # r
-    Br[1:NL,3] = branchSeg[:,4];
-    Br[NL + 1 : NL + NT,3] = transformerSeg[range(2,4,NT),1];
-    # x
-    Br[1:NL,4] = branchSeg[:,5];
-    Br[NL + 1 : NL + NT,4] = transformerSeg[range(2,4,NT),2];
-    # b
-    Br[1:NL,5] = branchSeg[:,6];
-    Br[NL + 1 : NL + NT,5] = repeat([0.0],outer=[NT]);
-    # RATE A
-    Br[1:NL,6] = branchSeg[:,7]/baseMVA;
-    Br[NL+1:NL+NT,6] = transformerSeg[range(2,4,NT),3]/baseMVA;
-    # Kt
-    Br[:,7] = ones(NL + NT);
-    Br[NL + 1 : NL + NT,7] = transformerSeg[range(3,4,NT),1];
-    return BLGS, Br, contingency, genSeg, baseMVA
+    trtau = transformerSeg[lineNo+2,1]/transformerSeg[lineNo+3,1];
+    trItem = branchData(trFrom,trTo,trName,trID_ext,trr,trx,trbc,trt,trtau);
+
+    push!(brList,trID_ext);
+    push!(brListSingle,trID_ext);
+    brDList[trID_ext] = trItem;
+    lineNo = lineNoNew;
+  end
+  return brList,brListSingle,brDList;
+  end
+
+function contProc(contFile)
+contingency = CSV.read(contFile);
+contData,contTitle = readdlm(contFile,',',header = true);
+contn,contm = size(contData);
+contList = [];
+contDList = Dict();
+for i in 1:contn
+  contID = contData[i,1];
+  push!(contList,contID);
+  contType = contData[i,2];
+  if (contType == "B")|(contType == "T")
+    contLoc = [(contData[i,3],contData[i,4],contData[i,5])];
+  else
+    contLoc = [contData[i,3],contData[i,4]];
+  end
+  contItem = contingencyData(contID,contType,contLoc);
+  contDList[contID] = contItem;
+end
+return contingency,contList,contDList;
 end
