@@ -38,6 +38,13 @@ function initialize_data_struct()
     switchedShunt = DataFrame(I=Int[], MODSW=Float16[], ADJM=Float16[], STAT=Bool[], VSWHI=Float16[], VSWLO=Float16[], SWREM=Float16[], RMPCT=Float16[], RMIDNT=String[], BINIT=Float16[], N1=Int[], B1=Float16[], N2=Int[], B2=Float16[], N3=Int[], B3=Float16[], N4=Int[], B4=Float16[], N5=Int[], B5=Float16[], N6=Int[], B6=Float16[], N7=Int[], B7=Float16[], N8=Int[], B8=Float16[])
 
 
+    """
+    TO DO
+    SBASE is mannualy assigned in the constructor.
+    should be fixed, but then it is changed during the parsing
+    """
+
+
     # busData, loadData, fixedBusShunt,generator, nonTransformer, transformer, switchedShunt
     newNetworkData = PNetworkData(100., busData, loadData, fixedBusShunt,generator, branch, transformer, switchedShunt)
 
@@ -74,6 +81,10 @@ function initialize_costs_struct()
     linearCurve = DataFrame(LTBL=Int[], LABEL=String[], NPAIRS=Int[], XYmatrix=Array{Float16, 2}[])
 
     genCosts = CostsStruct(genDispatch, activeDispatch, linearCurve)
+
+    # rename for further join on these columns
+    rename!(genCosts.genDispatch, Dict(:DSPTBL => :TBL))
+    rename!(genCosts.linearCurve, Dict(:LTBL => :CTBL))
     return genCosts
 end
 

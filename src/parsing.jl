@@ -2,6 +2,16 @@ using DataFrames
 using CSV: read
 
 """
+TO DO
+input: all files to parse
+output: structure with all neede data stored in DataFrames
+in particular should contain calls of 4 parser for raw, contingencies, costs and response files
+"""
+function main_parser()
+
+end
+
+"""
 reads and returns file
 """
 function file_reader(path)
@@ -98,6 +108,10 @@ function raw_parser!(file_path, NetData)
       end
     end
 
+    """
+    the next block can be changed to a function call which will store the data directly into PNetwork with all neede computations
+      the same is true for the rest of parsers
+    """
     # base MVA
     NetData.sbase = rawData[1,2];
     # bus
@@ -223,6 +237,9 @@ function costs_parser!(costs_path, costsData)
 end
 
 
+"""
+it is broken now!!!
+"""
 # RESPONSE in case.inl
 function response_parser!(resp_path, Resp)
   to_skip = 2 # there are to lines at the end "0" and "Q" which indicate the end of the file
