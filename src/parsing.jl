@@ -1,5 +1,6 @@
 using DataFrames
 using CSV: read
+include("NetworkData.jl")
 
 """
 TO DO
@@ -8,7 +9,6 @@ output: structure with all neede data stored in DataFrames
 in particular should contain calls of 4 parser for raw, contingencies, costs and response files
 """
 function main_parser()
-
 end
 
 """
@@ -18,7 +18,6 @@ function file_reader(path)
   file = readdlm(path,',', skipblanks=false);
   return file
 end
-
 
 """
 pushes bunch of raw data into a dataframe
@@ -52,7 +51,7 @@ end
 """
 reads *.raw data file, parses into bunches according to the data types (bus, load, branches and so on) and stores all the data into NetData structure
 """
-function raw_parser!(file_path, NetData)
+function raw_parser!(file_path, NetData, PN)
     # rawData = readdlm(file_path,',', skipblanks=false);
     rawData = file_reader(file_path)
 
@@ -109,53 +108,44 @@ function raw_parser!(file_path, NetData)
     end
 
     """
-    the next block can be changed to a function call which will store the data directly into PNetwork with all neede computations
+    the next block can be changed to a function call which will store the data directly into PNetwork with all needed computations
       the same is true for the rest of parsers
     """
     # base MVA
-    NetData.sbase = rawData[1,2];
+    # NetData.sbase = rawData[1,2];
+    PN.s = rawData[1,2];
+
     # bus
     fillin_data!(rawData[busStartL:busEndL,:], NetData.bus)
+    Bus_init!(rawData[busStartL:busEndL,:], PN)
+
     # load
     fillin_data!(rawData[loadStartL:loadEndL,:], NetData.load)
+    Load_init!(rawData[loadStartL:loadEndL, :], PN)
+
     # fixed shunt
     fillin_data!(rawData[fixedShuntStartL:fixedShuntEndL,:], NetData.fixedBusShunt)
+    if fixedShuntEndL > fixedShuntStartL + 1
+      fShunt_init!(rawData[fixedShuntStartL:fixedShuntEndL,:], PN)
+    end
+
     # generator
     fillin_data!(rawData[genStartL:genEndL,:], NetData.generator)
-    # branch
-    fillin_data!(rawData[branchStartL:branchEndL,:], NetData.branch)
+    Generator_init!(rawData[genStartL:genEndL,:], PN)
+
+    # branch LINE
+    fillin_data!(rawData[branchStartL:branchEndL,:], NetData.line)
+    Line_init!(rawData[branchStartL:branchEndL,:], PN)
+
     # transformer
     fillin_data!(rawData[transformerStartL:transformerEndL,:], NetData.transformer, "transformer")
+    Transformer_init!(rawData[transformerStartL:transformerEndL,:], PN)
+
     # switched shunt
     fillin_data!(rawData[switchedShuntStartL:switchedShuntEndL, :], NetData.switchedShunt)
+    sShunt_init!(rawData[switchedShuntStartL:switchedShuntEndL, :], PN)
 
     println("raw data at $file_path is parsed")
-end
-
-
-"""
-parser for contingencies
-"""
-
-function cont_parser!(contin_path, contData)
-  # gen_cont = [];
-  # line_cont = [];
-
-  open(contin_path) do file
-    for L in eachline(file)
-      if contains(L, "REMOVE UNIT")
-        push!(contData.genCont, split(L)[end])
-      end
-      if contains(L, "OPEN BRANCH")
-        from = parse(split(L)[end-5])
-        to = parse(split(L)[end-2])
-        # line = (from, to)
-        push!(contData.lineCont, (from, to))
-      end
-    end
-  end
-  println("contingencies at $contin_path are parsed ")
-  # return gen_cont, line_cont
 end
 
 
@@ -166,7 +156,7 @@ TO DO
 modify if's to check for end of line instead of only "0 / " substring
 
 """
-function costs_parser!(costs_path, costsData)
+function costs_parser!(costs_path, costsData, PN)
   # costs = readdlm(costsFile,',', skipblanks=false);
   costs = file_reader(costs_path)
 
@@ -231,41 +221,53 @@ function costs_parser!(costs_path, costsData)
     end
     i += 1
   end
-  # println("end of loop")
-  println("costs file at $costs_path is parsed")
-  # return k, A, s
+
+  # initialize costs in the network
+  costs_init!(costsData, PN)
 end
 
 
-"""
-it is broken now!!!
-"""
 # RESPONSE in case.inl
-function response_parser!(resp_path, Resp)
+function response_parser!(resp_path, PN)#, Resp)
   to_skip = 2 # there are to lines at the end "0" and "Q" which indicate the end of the file
-  Resp.data = read(resp_path, footerskip=to_skip, header=names(Resp.data))
+  # Resp.data = read(resp_path, footerskip=to_skip, header=names(Resp.data))
+  # Data = read(resp_path, footerskip=to_skip, header=names(Resp.data))
+  open(resp_path) do file
+    for L in eachline(file)
+      if length(split(L)) == 1
+        break
+      end
+      line = split(L)
+      i = parse(Int64, replace(line[1], ","=> ""))
+      id = parse(Int64, replace(line[2], ","=> ""))
+      alpha = parse(Float64, replace(line[6], ","=> ""))
+      #
+      PN.GeneratorList[PN.gen_ind_I[(i, id)]].alpha = alpha
+    end
+  end
 end
 
 
-####################### HELPERS-TESTERS
+"""
+parser for contingencies
+"""
+function cont_parser!(contin_path, contData)
+  # gen_cont = [];
+  # line_cont = [];
 
-# function analyze_seq(seq)
-#   m, n = size(seq)
-#   println(size(seq))
-#   for i = 1:5
-#     println(seq[i, 1:13][1:end])
-#   end
-# end
-#
-# function analyze(file_path)
-#   rawData = readdlm(file_path,',', skipblanks=false);
-#   n,m = size(rawData);
-#   switchedShuntStartL = 0;
-#
-#   for i  = 1:n
-#     if contains(string(rawData[i,1]), "END OF FACTS CONTROL DEVICE DATA")
-#       switchedShuntStartL = i + 1
-#       println(switchedShuntStartL)
-#     end
-#   end
-# end
+  open(contin_path) do file
+    for L in eachline(file)
+      if contains(L, "REMOVE UNIT")
+        push!(contData.genCont, split(L)[end])
+      end
+      if contains(L, "OPEN BRANCH")
+        from = parse(split(L)[end-5])
+        to = parse(split(L)[end-2])
+        # line = (from, to)
+        push!(contData.lineCont, (from, to))
+      end
+    end
+  end
+  println("contingencies at $contin_path are parsed ")
+  # return gen_cont, line_cont
+end

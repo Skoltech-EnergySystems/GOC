@@ -75,19 +75,85 @@ rename!(costsData.)
 
 D = join(costsData.genDispatch, costsData.activeDispatch, on=[:TBL], kind=:left)
 
+include("components_struct.jl")
 
+d = [1, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+bb = Bus(d)
 
-using JuMP
+# ==============================
+
+using JuMP, Ipopt
 mutable struct G
-    g::Set
-    N::Int16
-    G() = new(g, N)
+    id::Tuple{Int64, Int64}
+    N::Int64
+    G() = new()
 end
 
 LG = []
 for i=1:2:10, j=1:2
-    G((i,j), rand(1:5, 1))
-    push!(LG, G)
+    A = G()
+    A.id = (i,j)
+    A.N = rand(1:5)
+    push!(LG, A)
 end
 
-println(rand(1:5, 1))
+println(LG)
+caliG = [g.id for g in LG]
+
+# for i = 1:length(LG)
+#     println(LG[i].N)
+# end
+
+m = Model(solver=IpoptSolver())
+
+@variable(m, t1[g=1:length(LG), i=1:LG[g].N])
+
+
+
+@variable(m, t2[g=LG])
+
+# for g = 1:length(LG)
+#     println("g=$g: ", 1:LG[g].N)
+# end
+
+
+for g = 1:length(LG)
+    @variable(m, t3[1:LG[g].N])
+end
+
+for g in LG
+    @variable(m, t4[g.id, 1:g.N])
+end
+
+s = 0
+for g in LG
+    s += g.N
+end
+print(s)
+
+
+# ========================
+m2 = Model(solver=IpoptSolver())
+A = [3,4]
+# @macroexpand @variable(m2, x[i=1:length(A), j=1:A[i]])
+
+@variable(m2, y)
+x = Array{Array{JuMP.Variable, 1}, 1}()
+# @constraintref x_constr =
+for i = 1:length(A)
+    push!(x, @variable(m2, [1:A[i]], basename="x_$i"))
+    # push!(x_constr, @constraint(m2, x[i][1] + 2 == 25))
+end
+p = PN.GeneratorList[1].p
+@variable(m2, p_g[1:6])
+@constraint(m2, p' * p_g == 1)
+
+println(m2)
+
+
+
+
+##############################
+for g in PN.G
+    println(g)
+end
