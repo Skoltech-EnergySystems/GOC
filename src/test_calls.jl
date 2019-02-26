@@ -1,15 +1,16 @@
-workspace()
-
-push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/Parsing.jl")
-
+push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/src/");
+cur_path = pwd() * "/src/"
 
 using Revise
-Revise.track("Parsing.jl")
+Revise.track(cur_path * "Parsing.jl")
+Revise.track(cur_path * "DataStructures.jl")
+Revise.track(cur_path * "NetworkData.jl")
 
-includet("Parsing.jl")
-includet("DataStructures.jl")
-includet("NetworkData.jl")
+includet(cur_path * "Parsing.jl")
+includet(cur_path * "DataStructures.jl")
+includet(cur_path * "NetworkData.jl")
 # include("network_init.jl")
+
 
 rawFile = "./data/case.raw"
 contFile = "./data/case.con"
