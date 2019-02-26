@@ -310,7 +310,7 @@ function sShunt_constr(sS, Data, s)
         for j = st_ind:2:2*BL_len-1
             push!(BL, Data[j] * Data[j+1] / s)
         end
-        NBL = findfirst(BL, 0) - 1
+        NBL = findfirst(isequal(0), BL) - 1
         sS.bCS_max = sum([max(0,x) for x in BL])
         sS.bCS_min = sum([min(0,x) for x in BL])
     end
@@ -387,7 +387,7 @@ end
 function costs_init!(Data, PN)
     D0 = join(Data.genDispatch, Data.activeDispatch, on=[:TBL], kind=:left)
     D = join(D0, Data.linearCurve, on=[:CTBL], kind=:left)
-
+    # println(names(D))
     for i = 1:size(D)[1]
         L = D[i,:]
         g = (L[:BUS][1], L[:GENID][1])
@@ -395,8 +395,10 @@ function costs_init!(Data, PN)
 
         PN.GeneratorList[j].N = L[:NPAIRS][1]
         # return L[:XYmatrix][1][:,1]
-        PN.GeneratorList[j].p = L[:XYmatrix][1][:,1] / PN.s
-        PN.GeneratorList[j].c = L[:XYmatrix][1][:,2] / PN.s
+        # println(names(L))
+        # PN.GeneratorList[j].p = L[:XYmatrix][1][:,1] / PN.s
+        PN.GeneratorList[j].p = L[:XYmatrix][:,1] / PN.s
+        PN.GeneratorList[j].c = L[:XYmatrix][:,2] / PN.s
     end
     # return D
 end

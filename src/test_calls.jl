@@ -1,9 +1,14 @@
 workspace()
 
+push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/Parsing.jl")
 
-include("Parsing.jl")
-include("DataStructures.jl")
-include("NetworkData.jl")
+
+using Revise
+Revise.track("Parsing.jl")
+
+includet("Parsing.jl")
+includet("DataStructures.jl")
+includet("NetworkData.jl")
 # include("network_init.jl")
 
 rawFile = "./data/case.raw"
@@ -11,8 +16,9 @@ contFile = "./data/case.con"
 costsFile = "./data/case.rop"
 inlFile = "./data/case.inl"
 
+# create an empty Network structure and fill it with parsed data
 PN = PNetwork()
-mainData = PNetworkData()
+mainData = PNetworkData() # empty structure with DataFrames to store data
 @time raw_parser!(rawFile, mainData, PN);
 
 costsData = CostsStruct()
@@ -27,5 +33,5 @@ continData = ContingenciesStruct()
 @time cont_parser!(contFile, continData)
 
 
-include("model.jl")
-opf = create_model(PN)
+# include("model.jl")
+# opf = create_model(PN)

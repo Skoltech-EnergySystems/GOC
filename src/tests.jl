@@ -157,3 +157,25 @@ println(m2)
 for g in PN.G
     println(g)
 end
+
+#########################################
+using DelimitedFiles
+
+path = "./data/case.raw"
+rawData = readdlm(path,',', skipblanks=false)
+
+n,m = size(rawData);
+println(n, "|", m)
+
+for i = 1:n
+
+    if occursin("END OF LOAD DATA", string(rawData[i,1]),)
+        println(rawData[i,1])
+        println(i)
+    end
+end
+
+Data = costsData
+
+D0 = join(Data.genDispatch, Data.activeDispatch, on=[:TBL], kind=:left)
+D = join(D0, Data.linearCurve, on=[:CTBL], kind=:left)
