@@ -2,22 +2,7 @@ include("NetworkData.jl")
 
 
 #=
-Constructors for the structures from NetworkData.jl
 
-should be moved to their structures further
-
-
-
-
-
-"""
-TO DO
-
-to optimize resources usage it is better to fill this structure duting parsing part.
-IDEA
-just put each line to some function which will compute the parameters and store them.
-
-"""
 =#
 
 

@@ -1,46 +1,32 @@
-include("Parsing.jl")
-include("DataStructures.jl")
-include("NetworkData.jl")
-include("network_init.jl")
-
-rawFile = "./data/case.raw"
-contFile = "./data/case.con"
-costsFile = "./data/case.rop"
-inlFile = "./data/case.inl"
-
-println("Starting pre-processing.\n Parsing Data and storing it in DataFrames")
-println("------------------------------")
+# push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/src/");
+# push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/");
 
 
-PN = PNetwork()
-# process raw Data
-println("raw data at $rawFile")
-mainData = PNetworkData()
-@time raw_parser!(rawFile, mainData, PN);
-println("------------------------------")
+cur_path = pwd();
+code_path = cur_path * "/src/";
+data_path = cur_path * "/data/";
 
-# process contingencies
-println("file with contingencies at $contFile")
-continData = initialize_contin_struct()
-@time cont_parser!(contFile, continData)
-println("------------------------------")
+using Revise
+includet(code_path * "Parsing.jl")
+includet(code_path * "DataStructures.jl")
+includet(code_path * "NetworkData.jl")
 
-# process Costs
-# println("file with costs at $contFile")
-# costsData = CostsStruct()
-# @time costs_parser!(costsFile, costsData)
-# println("------------------------------")
+Revise.track(code_path * "Parsing.jl")
+Revise.track(code_path * "DataStructures.jl")
+Revise.track(code_path * "NetworkData.jl")
 
-# process *.inl data
-println("case.inl at $inlFile")
-respData = initialize_response_struct()
-@time response_parser!(inlFile, respData, PN)
-println("------------------------------")
+# rawFile = data_path * "case.raw"
+# contFile = data_path * "case.con"
+# costsFile = data_path * "case.rop"
+# inlFile = data_path * "case.inl"
+data_pathes = Dict(:raw => data_path * "case.raw",
+                    :contin => data_path * "case.con",
+                    :costs => data_path * "case.rop",
+                    :inl => data_path * "case.inl"
+)
 
-# PNetwork initialization with Data
-@time network_init(PN, mainData)
+PN, mainData, costsData, continData = parser(data_pathes)
 
-# PCosts init
-include("network_init.jl")
-PC = PCosts()
-costs_init(costsData, PC, PN.s)
+
+# include("model.jl")
+# opf = create_model(PN)

@@ -12,9 +12,10 @@ General rules for new variables
 """
 =#
 
-"""
-function to initialize switchedShunt data since it is easier to do line by line
-"""
+# """
+# NOT IN USE CURRENTLY
+# function to initialize switchedShunt data since it is easier to do line by line
+# """
 function temp_switchedShunt_init(Data, s)
     BL_len = 8 # the number of (Ni, Bi) pairs
     rows = size(Data)[1]
@@ -39,8 +40,6 @@ end
 ##############################################
 # BUS
 mutable struct Bus
-    # caliI::Int
-    # caliA::Int
     i::Int # i
     a::Int # a
     v0::Float64 # VM
@@ -50,18 +49,14 @@ mutable struct Bus
     vK_max::Float64 # EVHI
     vK_min::Float64 # EVLO
 
-    # Bus() = new()
     Bus(Data) = bus_constr(new(), Data)
 end
-function bus_constr(B, Data)
-    # B = new()
-    # B.a = Data.bus[:AREA]
-    # B.v0 = Data.bus[:VM]
-    # B.theta0 = Data.bus[:VA]
-    # B.v_max =Data.bus[:NVHI]
-    # B.v_min = Data.bus[:NVLO]
-    # B.vK_max = Data.bus[:EVHI]
-    # B.vK_min = Data.bus[:EVLO]
+"""
+Bus constructor.
+in: Data -- line of data from raw file
+out: B -- Bus object
+"""
+function bus_constr(B, Data)     
     B.i = Data[1]
     B.a = Data[5]
     B.v0 = Data[8]
@@ -73,14 +68,19 @@ function bus_constr(B, Data)
     return B
 end
 
+"""
+Initialize list of Buses from Data
+in: Data -- raw data with bus data
+    PN -- power network
+"""
 function Bus_init!(Data, PN)
   n = size(Data)[1]
   PN.BusList = []
   for i = 1:n
-    B = Bus(Data[i,:])
-    push!(PN.BusList, B)
-    push!(PN.caliI, B.i)
-    push!(PN.caliA, B.a)
+    B = Bus(Data[i,:]) # create new bus instance based on current line
+    push!(PN.BusList, B) # push new Bus into array of buses
+    push!(PN.caliI, B.i) # add its index to set of indeces
+    push!(PN.caliA, B.a) # add its area to set of areas
   end
 end
 
@@ -91,6 +91,9 @@ mutable struct Load
 
     Load(Data, s) = load_constr(new(), Data, s)
 end
+"""
+Load constructor from Data
+"""
 function load_constr(Ld, Data, s)
     Ld.pL = 0.0
     Ld.qL = 0.0
@@ -100,13 +103,15 @@ function load_constr(Ld, Data, s)
     end
     return Ld
 end
-
+"""
+Stores all loads into an array
+"""
 function Load_init!(Data, PN)
   n = size(Data)[1]
   PN.LoadList = []
   for i = 1:n
-    Ld = Load(Data[i,:], PN.s)
-    push!(PN.LoadList, Ld)
+    Ld = Load(Data[i,:], PN.s) # new load instance
+    push!(PN.LoadList, Ld) # add it to list
   end
 end
 
@@ -118,6 +123,9 @@ mutable struct FixedShunt
 
     FixedShunt(Data) = fShunt_constr(new(), Data, s)
 end
+"""
+Fixed shunt constructor
+"""
 function fShunt_constr(fS, Data, s)
     fS.gFS = 0.0
     fS.bFS = 0.0
@@ -129,21 +137,19 @@ function fShunt_constr(fS, Data, s)
 end
 
 """
-in challenge 1 it is empty so I need to create an empty list otherwise i get an error "access to undefined reference"
+in challenge 1 it is empty so an empty list created otherwise error "access to undefined reference" occurs
 """
 function fShunt_init!(Data, PN)
   n = size(Data)[1]
   PN.fShuntList = []
   for i = 1:n
-    B = FixedShunt(Data[i,:], PN.s)
-    push!(PN.fShuntList, B)
+    B = FixedShunt(Data[i,:], PN.s) # new instance
+    push!(PN.fShuntList, B) # stored in list
   end
 end
 
 # GENERATOR
 mutable struct Generator
-    # caliG::Int
-    # G::Int
     i::Int
     id::Int
     g::Tuple
@@ -163,6 +169,9 @@ mutable struct Generator
 
     Generator(Data, s) = generator_constr(new(), Data, s)
 end
+"""
+Generator constructor
+"""
 function generator_constr(G, Data, s)
     G.i = Data[1]
     G.id = parse(Int,replace(strip(Data[2]), "'" => ""))
@@ -177,17 +186,22 @@ function generator_constr(G, Data, s)
     return G
 end
 
+"""
+Stores generators into a list of all generators
+"""
 function Generator_init!(Data, PN)
   n = size(Data)[1]
   PN.GeneratorList = []
   PN.gen_ind_I = Dict{Int, Int}()
   for i = 1:n
-    G = Generator(Data[i,:], PN.s)
-    push!(PN.GeneratorList, G)
-    push!(PN.caliG, G.g)
+    G = Generator(Data[i,:], PN.s) # new generator instance
+    push!(PN.GeneratorList, G) # stored into list
+    push!(PN.caliG, G.g) # save its compound index in set of generator indeces
     if G.stat == true
-        push!(PN.G, G.g)
+        push!(PN.G, G.g) # save its index in set of ACTIVE generator indeces
     end
+    # corresondece between compound index g and index i in list of generators for THE SAME GENERATOR
+    # generator g can be reached by index PN.gen_ind_I[g] in list of generators PN.GeneratorList
     PN.gen_ind_I[G.g] = length(PN.GeneratorList)
   end
 end
@@ -206,6 +220,9 @@ mutable struct Line
     st::Bool
     Line(Data, s) = line_constr(new(), Data, s)
 end
+"""
+Line constructor
+"""
 function line_constr(L, Data, s)
     L.iO = Data[1]
     L.iD = Data[2]
@@ -221,15 +238,18 @@ function line_constr(L, Data, s)
     return L
 end
 
+"""
+Stores lines into an array
+"""
 function Line_init!(Data, PN)
   n = size(Data)[1]
   PN.LineList = []
   for i = 1:n
-    L = Line(Data[i,:], PN.s)
-    push!(PN.LineList, L)
-    push!(PN.Eps, L.e)
+    L = Line(Data[i,:], PN.s) # new line instance
+    push!(PN.LineList, L) # store into array
+    push!(PN.Eps, L.e) # add its index to set of line indeces
     if L.st == true
-        push!(PN.E, L.e)
+        push!(PN.E, L.e) # list of active lines
     end
   end
 end
@@ -252,6 +272,9 @@ mutable struct Transformer
 
     Transformer(Data, s) = transformer_constr(new(), Data, s)
 end
+"""
+Transformer constructor
+"""
 function transformer_constr(T, Data, s)
     T.iO = Data[1]
     T.iD = Data[2]
@@ -270,6 +293,9 @@ function transformer_constr(T, Data, s)
     return T
 end
 
+"""
+Stores transformets into array
+"""
 function Transformer_init!(Data, PN)
   n = size(Data)[1]
   PN.TransformerList = []
@@ -278,13 +304,13 @@ function Transformer_init!(Data, PN)
   for i = 1:step:n
     full_line = []
     for j = 0:step-1
-      full_line = [full_line; Data[i+j, 1:lines_len[j+1]]];
+      full_line = [full_line; Data[i+j, 1:lines_len[j+1]]]; # combined line
     end
-    T = Transformer(full_line, PN.s)
-    push!(PN.TransformerList, T)
-    push!(PN.caliF, T.f)
+    T = Transformer(full_line, PN.s) # new Transfromer instance
+    push!(PN.TransformerList, T) # store into array
+    push!(PN.caliF, T.f) # save its index
     if T.st == true
-        push!(PN.F, T.f)
+        push!(PN.F, T.f) # save to set of active
     end
   end
 end
@@ -299,12 +325,16 @@ mutable struct SwitchedShunt
 
     SwitchedShunt(Data, s) = sShunt_constr(new(), Data, s)
 end
+"""
+SwitchedShunt constructor
+"""
 function sShunt_constr(sS, Data, s)
     sS.i = Data[1]
     BL_len = 8
     BL = []
     st_ind = 11 # index of N1, starting the sequence of Ni, Bi
-    if Data[4] == true
+    # all that is according to the instructions in the GOC file
+    if Data[4] == true # if active
         sS.stat = true
         sS.bCS0 = Data[10]
         for j = st_ind:2:2*BL_len-1
@@ -316,7 +346,9 @@ function sShunt_constr(sS, Data, s)
     end
     return sS
 end
-
+"""
+Stores SwitchedShunts into array
+"""
 function sShunt_init!(Data, PN)
   n = size(Data)[1]
   PN.sShuntList = []
@@ -329,44 +361,49 @@ function sShunt_init!(Data, PN)
 end
 
 #########################################
-# main data descrbing network parameters
+# Power Network structure
 mutable struct PNetwork
     # base MVA
     s::Float16
 
     #bus data
-    caliI::Set
-    caliA::Set
-    BusList::Array{Bus, 1}
+    caliI::Set # bus indeces
+    caliA::Set # areas
+    BusList::Array{Bus, 1} # array of Buses
 
     # load data
-    LoadList::Array{Load, 1}
+    LoadList::Array{Load, 1} # array of Loads
 
     # fixed shunt data
-    fShuntList::Array{FixedShunt}
+    fShuntList::Array{FixedShunt}  # array of Fixed Shunts
 
     # generator data
-    caliG::Set
-    G::Set
-    GeneratorList::Array{Generator}
+    caliG::Set # set of generators
+    G::Set # set of active generators
+    GeneratorList::Array{Generator} # array of Generators
+    # correspondance between index g and and index in the list
     gen_ind_I::Dict{Tuple, Int} # change to get_gener_index
 
     # line data BRANCH
-    Eps::Set
-    E::Set
-    LineList::Array{Line}
+    Eps::Set # lines' indeces
+    E::Set # active lines' indeces
+    LineList::Array{Line} # array of Lines
 
     # transformer data
-    caliF::Set
-    F::Set
-    TransformerList::Array{Transformer}
+    caliF::Set # transformers' indeces
+    F::Set # active transformers' indeces
+    TransformerList::Array{Transformer} # array of Transformers
 
-    # swtiched shunt
-    sShuntList::Array{SwitchedShunt}
+    # switched shunt
+    sShuntList::Array{SwitchedShunt} # array of Switched Shunts
+    # corresondance between switched shunt index e and its index in the list
     get_shunt_index::Dict{Int, Int}
 
     PNetwork() = constr_network(new())
 end
+"""
+Power Network constructor
+"""
 function constr_network(PN)
     PN.caliI = Set(Array{Int64, 1}())
     PN.caliA = Set(Array{Int64, 1}())
@@ -380,30 +417,30 @@ function constr_network(PN)
     return PN
 end
 
-
 # =====================================
 # Costs data
-
+"""
+Initializes costs data for Power Network PN
+in: Data -- DataFrames with all costs
+    PN -- Power Network
+"""
 function costs_init!(Data, PN)
+    # join DataFrames as described in the instructions file
     D0 = join(Data.genDispatch, Data.activeDispatch, on=[:TBL], kind=:left)
     D = join(D0, Data.linearCurve, on=[:CTBL], kind=:left)
-    # println(names(D))
+    # parse line by line
     for i = 1:size(D)[1]
-        L = D[i,:]
-        g = (L[:BUS][1], L[:GENID][1])
-        j = PN.gen_ind_I[g]
+        L = D[i,:] # next line
+        g = (L[:BUS][1], L[:GENID][1]) # generator's index g
+        j = PN.gen_ind_I[g] # its index in the list
 
-        PN.GeneratorList[j].N = L[:NPAIRS][1]
-        # return L[:XYmatrix][1][:,1]
-        # println(names(L))
-        # PN.GeneratorList[j].p = L[:XYmatrix][1][:,1] / PN.s
-        PN.GeneratorList[j].p = L[:XYmatrix][:,1] / PN.s
-        PN.GeneratorList[j].c = L[:XYmatrix][:,2] / PN.s
+        PN.GeneratorList[j].N = L[:NPAIRS][1] # number of segments of piecewise linear costs
+        PN.GeneratorList[j].p = L[:XYmatrix][:,1] / PN.s # generation points
+        PN.GeneratorList[j].c = L[:XYmatrix][:,2] / PN.s # costs
     end
-    # return D
 end
 
-
+###################################
 # OLD STRUCTURE TO DELETE
 mutable struct PCosts
     caliH::Dict

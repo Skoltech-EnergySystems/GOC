@@ -1,37 +1,36 @@
+#=
+ADDITIONAL SCRIPT FOR TEST
+
+=#
+
+
+
 push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/src/");
-cur_path = pwd() * "/src/"
+push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/");
+cur_path = pwd();
+code_path = cur_path * "/src/";
+data_path = cur_path * "/data/";
 
 using Revise
-Revise.track(cur_path * "Parsing.jl")
-Revise.track(cur_path * "DataStructures.jl")
-Revise.track(cur_path * "NetworkData.jl")
+includet(code_path * "Parsing.jl")
+includet(code_path * "DataStructures.jl")
+includet(code_path * "NetworkData.jl")
 
-includet(cur_path * "Parsing.jl")
-includet(cur_path * "DataStructures.jl")
-includet(cur_path * "NetworkData.jl")
-# include("network_init.jl")
+Revise.track(code_path * "Parsing.jl")
+Revise.track(code_path * "DataStructures.jl")
+Revise.track(code_path * "NetworkData.jl")
 
+# rawFile = data_path * "case.raw"
+# contFile = data_path * "case.con"
+# costsFile = data_path * "case.rop"
+# inlFile = data_path * "case.inl"
+data_pathes = Dict(:raw => data_path * "case.raw",
+                    :contin => data_path * "case.con",
+                    :costs => data_path * "case.rop",
+                    :inl => data_path * "case.inl"
+)
 
-rawFile = "./data/case.raw"
-contFile = "./data/case.con"
-costsFile = "./data/case.rop"
-inlFile = "./data/case.inl"
-
-# create an empty Network structure and fill it with parsed data
-PN = PNetwork()
-mainData = PNetworkData() # empty structure with DataFrames to store data
-@time raw_parser!(rawFile, mainData, PN);
-
-costsData = CostsStruct()
-@time costs_parser!(costsFile, costsData, PN)
-
-include("Parsing.jl")
-# respData = initialize_response_struct()
-response_parser!(inlFile, PN)#, respData)
-
-
-continData = ContingenciesStruct()
-@time cont_parser!(contFile, continData)
+PN, mainData, costsData, continData = parser(data_pathes)
 
 
 # include("model.jl")

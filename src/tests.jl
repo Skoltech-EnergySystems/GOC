@@ -1,3 +1,7 @@
+#=
+TRASH SCRIPT FOR EVERYTHING
+=#
+
 using DataFrames, JuMP
 
 a = Data.generator[:ID][2]
