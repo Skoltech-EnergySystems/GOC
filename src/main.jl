@@ -22,7 +22,7 @@ Revise.track(code_path * "NetworkData.jl")
 data_pathes = Dict(:raw => data_path * "case.raw",
                     :contin => data_path * "case.con",
                     :costs => data_path * "case.rop",
-                    :inl => data_path * "case.inl"
+                    :inl => data_path * "case.inl".
 )
 
 PN, mainData, costsData, continData = parser(data_pathes)
