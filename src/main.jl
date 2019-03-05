@@ -39,11 +39,9 @@ the main function which starts all the procedures:
     # parsing
     PN, mainData, costsData, continData = parser(data_paths);
 
-
+    # model initialization
     # include("model.jl")
-    opf = create_model(PN)
+    # opf = create_model(PN)
 
-    # return PN, mainData, costsData, continData
-    # return PN, mainData, costsData, continData, opf
-    return opf
+    return PN, mainData, costsData, continData
 end
