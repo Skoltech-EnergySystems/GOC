@@ -183,3 +183,16 @@ Data = costsData
 
 D0 = join(Data.genDispatch, Data.activeDispatch, on=[:TBL], kind=:left)
 D = join(D0, Data.linearCurve, on=[:CTBL], kind=:left)
+
+
+# =====================================
+using JuMP
+using Ipopt
+
+m = Model()
+x = @variable(m)
+typeof(x)
+f = Array{JuMP.VariableRef, 1}()
+push!(f, @variable(m, base_name="f_1"))
+
+@constraint(m, con, f[1] >= 0)

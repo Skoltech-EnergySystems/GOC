@@ -21,9 +21,11 @@ the main function which starts all the procedures:
     includet(joinpath(code_path , "Parsing.jl"));
     includet(joinpath(code_path , "DataStructures.jl"));
     includet(joinpath(code_path , "NetworkData.jl"));
+    includet(joinpath(code_path , "model.jl"));
     Revise.track(joinpath(code_path , "Parsing.jl"));
     Revise.track(joinpath(code_path , "DataStructures.jl"));
     Revise.track(joinpath(code_path , "NetworkData.jl"));
+    Revise.track(joinpath(code_path , "model.jl"));
 
     #  paths to data files
     # TO DO
@@ -39,7 +41,9 @@ the main function which starts all the procedures:
 
 
     # include("model.jl")
-    # opf = create_model(PN)
+    opf = create_model(PN)
 
-    return PN, mainData, costsData, continData
+    # return PN, mainData, costsData, continData
+    # return PN, mainData, costsData, continData, opf
+    return opf
 end
