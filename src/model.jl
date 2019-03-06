@@ -125,7 +125,7 @@ function create_model(PN::PNetwork)
         push!(sigQp_i, @variable(OPF, lower_bound=0, base_name="sigQp_$i") )
         push!(sigQm_i, @variable(OPF, lower_bound=0, base_name="sigQm_$i") )
 # 46
-        push!(sigP_diff, @constraint(OPF, sigPp_i[end] - sigPm_i[end] == )  )
+        # push!(sigP_diff, @constraint(OPF, sigPp_i[end] - sigPm_i[end] == )  )
 
     end
 

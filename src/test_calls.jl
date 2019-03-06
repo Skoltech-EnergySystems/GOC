@@ -4,9 +4,19 @@
 using Revise
 
 # paths manipulations
+# Julia 1.1.0
+#=
 Path = splitpath(pwd())
 i = findlast(s -> s == "GOC", Path)
 proj_path = joinpath(Path[1:i]...)
+=#
+# Julia 1.0 and older
+cur_path, goc = splitdir(pwd())
+while goc != "GOC"
+    cur_path, goc = splitdir(cur_path)
+end
+proj_path = joinpath(cur_path, goc);
+# 
 code_path = joinpath(proj_path, "src");
 data_path = joinpath(proj_path, "data");
 
