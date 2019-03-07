@@ -1,0 +1,8 @@
+1. relative indeces are used in components_struct.jl to construct instances
+  create a list of names and get index in Data by given name of column
+
+2. length of lines for transformer data manually assigned inside Transformer_init!() in parsing.jl
+
+3. when initialize data structures to store all the data inside DataFrames, sbase is mannually assigned without parsing
+
+4. no initialization of set of indeces I, caliI, and so on 
