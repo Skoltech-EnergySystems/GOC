@@ -103,6 +103,7 @@ function create_model(PN::PNetwork)
 
 # ∀ i ∈ I
     v_i = Array{JuMP.VariableRef, 1}()
+    theta_i = Array{JuMP.VariableRef, 1}()
     bCS_i = Array{JuMP.VariableRef, 1}()
     sigPp_i = Array{JuMP.VariableRef, 1}()
     sigPm_i = Array{JuMP.VariableRef, 1}()
@@ -115,6 +116,7 @@ function create_model(PN::PNetwork)
     for i in PN.caliI
 # 32
         push!(v_i, @variable(OPF, lower_bound=PN.BusList[i].v_min, upper_bound=PN.BusList[i].v_max, base_name="v_$i"))
+
 # 37
         if i in keys(PN.get_shunt_index)
             push!(bCS_i, @variable(OPF, lower_bound=PN.sShuntList[PN.get_shunt_index[i]].bCS_min, upper_bound=PN.sShuntList[PN.get_shunt_index[i]].bCS_max, base_name="bCS_$(PN.get_shunt_index[i])"))
@@ -128,17 +130,75 @@ function create_model(PN::PNetwork)
         # push!(sigP_diff, @constraint(OPF, sigPp_i[end] - sigPm_i[end] == )  )
 
     end
+#
+    size = maximum(PN.caliI);
+    @variable(OPF, theta[1:size])
+    @variable(OPF, v[1:size])
 
+    # Line flow: 38 - 41
+    pO_e = Array{JuMP.VariableRef, 1}()
+    qO_e = Array{JuMP.VariableRef, 1}()
+    pD_e = Array{JuMP.VariableRef, 1}()
+    qD_e = Array{JuMP.VariableRef, 1}()
 
+    pO_e_constr = Array{JuMP.ConstraintRef, 1}()
+    qO_e_constr = Array{JuMP.ConstraintRef, 1}()
+    pD_e_constr = Array{JuMP.ConstraintRef, 1}()
+    qD_e_constr = Array{JuMP.ConstraintRef, 1}()
+    # ∀ e ∈ E
+    for L in PN.LineList
+    push!(pO_e, @variable(OPF, base_name="pO_e_$(L.e)"))
+    push!(qO_e, @variable(OPF, base_name="qO_e_$(L.e)"))
+    push!(pD_e, @variable(OPF, base_name="pD_e_$(L.e)"))
+    push!(qD_e, @variable(OPF, base_name="qD_e_$(L.e)"))
+    # 38
+    push!(pO_e_constr, @NLconstraint(OPF,
+    pO_e[end] == L.g * v[L.iO]^2 + (-L.g * cos(theta[L.iO] - theta[L.iD]) - L.b * sin(theta[L.iO] - theta[L.iD])) * v[L.iO] * v[L.iD] ))
+    # 39
+    push!(qO_e_constr, @NLconstraint(OPF,
+    qO_e[end] == -(L.b + L.bCH/2) * v[L.iO]^2 + (L.b * cos(theta[L.iO] - theta[L.iD]) - L.g * sin(theta[L.iO] - theta[L.iD])) * v[L.iO] * v[L.iD] ))
+    # 40
+    push!(pD_e_constr, @NLconstraint(OPF,
+    pD_e[end] == L.g * v[L.iD]^2 + (-L.g * cos(theta[L.iD] - theta[L.iO]) - L.b * sin(theta[L.iD] - theta[L.iO])) * v[L.iO] * v[L.iD] ))
+    # 41
+    push!(qD_e_constr, @NLconstraint(OPF,
+    qD_e[end] == -(L.b + L.bCH/2) * v[L.iD]^2 + (L.b * cos(theta[L.iD] - theta[L.iO]) - L.g * sin(theta[L.iD] - theta[L.iO])) * v[L.iO] * v[L.iD] ))
+    end
 
-# ∀ e ∈ E
+    # Transformer flow: 42 - 45
+    pO_f = Array{JuMP.VariableRef, 1}()
+    qO_f = Array{JuMP.VariableRef, 1}()
+    pD_f = Array{JuMP.VariableRef, 1}()
+    qD_f = Array{JuMP.VariableRef, 1}()
+    #
 
+    pO_f_constr = Array{JuMP.ConstraintRef, 1}()
+    qO_f_constr = Array{JuMP.ConstraintRef, 1}()
+    pD_f_constr = Array{JuMP.ConstraintRef, 1}()
+    qD_f_constr = Array{JuMP.ConstraintRef, 1}()
+    #
+    # ∀ e ∈ E
+    for T in PN.TransformerList
+    push!(pO_f, @variable(OPF, base_name="pO_f_$(T.f)"))
+    push!(qO_f, @variable(OPF, base_name="qO_f_$(T.f)"))
+    push!(pD_f, @variable(OPF, base_name="pD_f_$(T.f)"))
+    push!(qD_f, @variable(OPF, base_name="qD_f_$(T.f)"))
+    #
+    # 42
+    push!(pO_f_constr, @NLconstraint(OPF,
+    pO_f[end] == (T.g / T.tau^2 + T.gM) * v[T.iO]^2 + (-T.g / T.tau * cos(theta[T.iO] - theta[T.iD]) - T.b / T.tau * sin(theta[T.iO] - theta[T.iD])) * v[T.iO] * v[T.iD] ))
+    # 43
+    push!(qO_f_constr, @NLconstraint(OPF,
+    qO_f[end] == -(T.b / T.tau^2 + T.bM) * v[T.iO]^2 + (T.b / T.tau * cos(theta[T.iO] - theta[T.iD]) - T.g / T.tau * sin(theta[T.iO] - theta[T.iD])) * v[T.iO] * v[T.iD] ))
+    # 44
+    push!(pD_f_constr, @NLconstraint(OPF,
+    pD_f[end] == T.g * v[T.iD]^2 + (-T.g / T.tau * cos(theta[T.iD] - theta[T.iO]) - T.b / T.tau * sin(theta[T.iD] - theta[T.iO])) * v[T.iO] * v[T.iD] ))
+    # 45
+    push!(qD_f_constr, @NLconstraint(OPF,
+    qD_f[end] == -T.b * v[T.iD]^2 + (T.b / T.tau * cos(theta[T.iD] - theta[T.iO]) - T.g / T.tau * sin(theta[T.iD] - theta[T.iO])) * v[T.iO] * v[T.iD] ))
+    end
 
 # ∀ f ∈ F
-
-
-
-
 
     # model for contingencies
 
