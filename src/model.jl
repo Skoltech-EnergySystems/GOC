@@ -9,7 +9,7 @@ function create_model(PN::PNetwork)
     OPF = Model(with_optimizer(Ipopt.Optimizer))
 
 
-    # base model
+    # base modell
 
     # """
     # loop through all complex indeces like g = (i, id) and add constraints manually.
@@ -131,9 +131,9 @@ function create_model(PN::PNetwork)
 
     end
 #
-    size = maximum(PN.caliI);
-    @variable(OPF, theta[1:size])
-    @variable(OPF, v[1:size])
+    sizeI = maximum(PN.caliI);
+    @variable(OPF, theta_i[1:sizeI])
+    @variable(OPF, v_i[1:sizeI])
 
     # Line flow: 38 - 41
     pO_e = Array{JuMP.VariableRef, 1}()
@@ -153,16 +153,16 @@ function create_model(PN::PNetwork)
     push!(qD_e, @variable(OPF, base_name="qD_e_$(L.e)"))
     # 38
     push!(pO_e_constr, @NLconstraint(OPF,
-    pO_e[end] == L.g * v[L.iO]^2 + (-L.g * cos(theta[L.iO] - theta[L.iD]) - L.b * sin(theta[L.iO] - theta[L.iD])) * v[L.iO] * v[L.iD] ))
+    pO_e[end] == L.g * v_i[L.iO]^2 + (-L.g * cos(theta_i[L.iO] - theta_i[L.iD]) - L.b * sin(theta_i[L.iO] - theta_i[L.iD])) * v_i[L.iO] * v_i[L.iD] ))
     # 39
     push!(qO_e_constr, @NLconstraint(OPF,
-    qO_e[end] == -(L.b + L.bCH/2) * v[L.iO]^2 + (L.b * cos(theta[L.iO] - theta[L.iD]) - L.g * sin(theta[L.iO] - theta[L.iD])) * v[L.iO] * v[L.iD] ))
+    qO_e[end] == -(L.b + L.bCH/2) * v_i[L.iO]^2 + (L.b * cos(theta_i[L.iO] - theta_i[L.iD]) - L.g * sin(theta_i[L.iO] - theta_i[L.iD])) * v_i[L.iO] * v_i[L.iD] ))
     # 40
     push!(pD_e_constr, @NLconstraint(OPF,
-    pD_e[end] == L.g * v[L.iD]^2 + (-L.g * cos(theta[L.iD] - theta[L.iO]) - L.b * sin(theta[L.iD] - theta[L.iO])) * v[L.iO] * v[L.iD] ))
+    pD_e[end] == L.g * v_i[L.iD]^2 + (-L.g * cos(theta_i[L.iD] - theta_i[L.iO]) - L.b * sin(theta_i[L.iD] - theta_i[L.iO])) * v_i[L.iO] * v_i[L.iD] ))
     # 41
     push!(qD_e_constr, @NLconstraint(OPF,
-    qD_e[end] == -(L.b + L.bCH/2) * v[L.iD]^2 + (L.b * cos(theta[L.iD] - theta[L.iO]) - L.g * sin(theta[L.iD] - theta[L.iO])) * v[L.iO] * v[L.iD] ))
+    qD_e[end] == -(L.b + L.bCH/2) * v_i[L.iD]^2 + (L.b * cos(theta_i[L.iD] - theta_i[L.iO]) - L.g * sin(theta_i[L.iD] - theta_i[L.iO])) * v_i[L.iO] * v_i[L.iD] ))
     end
 
     # Transformer flow: 42 - 45
@@ -177,7 +177,7 @@ function create_model(PN::PNetwork)
     pD_f_constr = Array{JuMP.ConstraintRef, 1}()
     qD_f_constr = Array{JuMP.ConstraintRef, 1}()
     #
-    # ∀ e ∈ E
+    # ∀ f ∈ F
     for T in PN.TransformerList
     push!(pO_f, @variable(OPF, base_name="pO_f_$(T.f)"))
     push!(qO_f, @variable(OPF, base_name="qO_f_$(T.f)"))
@@ -186,21 +186,33 @@ function create_model(PN::PNetwork)
     #
     # 42
     push!(pO_f_constr, @NLconstraint(OPF,
-    pO_f[end] == (T.g / T.tau^2 + T.gM) * v[T.iO]^2 + (-T.g / T.tau * cos(theta[T.iO] - theta[T.iD]) - T.b / T.tau * sin(theta[T.iO] - theta[T.iD])) * v[T.iO] * v[T.iD] ))
+    pO_f[end] == (T.g / T.tau^2 + T.gM) * v_i[T.iO]^2 + (-T.g / T.tau * cos(theta_i[T.iO] - theta_i[T.iD]  - T.theta) - T.b / T.tau * sin(theta_i[T.iO] - theta_i[T.iD])) * v_i[T.iO] * v_i[T.iD] ))
     # 43
     push!(qO_f_constr, @NLconstraint(OPF,
-    qO_f[end] == -(T.b / T.tau^2 + T.bM) * v[T.iO]^2 + (T.b / T.tau * cos(theta[T.iO] - theta[T.iD]) - T.g / T.tau * sin(theta[T.iO] - theta[T.iD])) * v[T.iO] * v[T.iD] ))
+    qO_f[end] == -(T.b / T.tau^2 + T.bM) * v_i[T.iO]^2 + (T.b / T.tau * cos(theta_i[T.iO] - theta_i[T.iD]) - T.g / T.tau * sin(theta_i[T.iO] - theta_i[T.iD])) * v_i[T.iO] * v_i[T.iD] ))
     # 44
     push!(pD_f_constr, @NLconstraint(OPF,
-    pD_f[end] == T.g * v[T.iD]^2 + (-T.g / T.tau * cos(theta[T.iD] - theta[T.iO]) - T.b / T.tau * sin(theta[T.iD] - theta[T.iO])) * v[T.iO] * v[T.iD] ))
+    pD_f[end] == T.g * v_i[T.iD]^2 + (-T.g / T.tau * cos(theta_i[T.iD] - theta_i[T.iO]) - T.b / T.tau * sin(theta_i[T.iD] - theta_i[T.iO])) * v_i[T.iO] * v_i[T.iD] ))
     # 45
     push!(qD_f_constr, @NLconstraint(OPF,
-    qD_f[end] == -T.b * v[T.iD]^2 + (T.b / T.tau * cos(theta[T.iD] - theta[T.iO]) - T.g / T.tau * sin(theta[T.iD] - theta[T.iO])) * v[T.iO] * v[T.iD] ))
+    qD_f[end] == -T.b * v_i[T.iD]^2 + (T.b / T.tau * cos(theta_i[T.iD] - theta_i[T.iO]) - T.g / T.tau * sin(theta_i[T.iD] - theta_i[T.iO])) * v_i[T.iO] * v_i[T.iD] ))
     end
 
-# ∀ f ∈ F
+    # Nodal equations
+    # 46
+    sizeG = maximum(PN.caliG);
+    pNod_constr = Array{JuMP.ConstraintRef, 1}()
+    for i = 1:sizeI
+        push!(pNod_constr, @NLconstraint(OPF,
+        sum(p_g[g] for g in G.id) - Ld.pl[B.i] - fS.gFS[B.i]*v_i[B.i]^2 - sum(pO_e[m] for m in L.iO) - sum(pD_e[n] for n in L.iD)
+        - sum(pO_f[x] for x in T.iO)- sum(pD_f[y] for y in T.iD) == sigPp_i[B.i] - sigPm_i[B.i]))
+    end
 
-    # model for contingencies
-
-    return OPF
+    # 49
+    qNod_constr = Array{JuMP.ConstraintRef, 1}()
+    for i = 1:sizeI
+        push!(qNod_constr, @NLconstraint(OPF,
+        sum(q_g[g] for g in G.id) - Ld.ql[B.i] - (- fS.bFS[B.i] - sS.bCS0[B.i])*v_i[B.i]^2 - sum(qO_e[m] for m in L.iO) - sum(qD_e[n] for n in L.iD)
+        - sum(qO_f[x] for x in T.iO)- sum(qD_f[y] for y in T.iD) == sigQp_i[B.i] - sigQm_i[B.i]))
+    end
 end
