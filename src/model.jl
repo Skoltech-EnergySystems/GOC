@@ -198,16 +198,37 @@ function create_model(PN::PNetwork)
     qD_f[end] == -T.b * v_i[T.iD]^2 + (T.b / T.tau * cos(theta_i[T.iD] - theta_i[T.iO]) - T.g / T.tau * sin(theta_i[T.iD] - theta_i[T.iO])) * v_i[T.iO] * v_i[T.iD] ))
     end
 
+#
     # Nodal equations
     # 46
     sizeG = maximum(PN.caliG);
     pNod_constr = Array{JuMP.ConstraintRef, 1}()
+    # How to make G, Ld, D, fS, L, T - global variables?
     for i = 1:sizeI
         push!(pNod_constr, @NLconstraint(OPF,
-        sum(p_g[g] for g in G.id) - Ld.pl[B.i] - fS.gFS[B.i]*v_i[B.i]^2 - sum(pO_e[m] for m in L.iO) - sum(pD_e[n] for n in L.iD)
+        sum(p_g[g] for g in G.id) - Ld.pL[B.i] - fS.gFS[B.i]*v_i[B.i]^2 - sum(pO_e[m] for m in L.iO) - sum(pD_e[n] for n in L.iD)
         - sum(pO_f[x] for x in T.iO)- sum(pD_f[y] for y in T.iD) == sigPp_i[B.i] - sigPm_i[B.i]))
     end
 
+    #= This loop even for short equation takes a lot of time
+    for G in PN.GeneratorList
+        for Ld in PN.LoadList
+            for B in PN.BusList
+                #for fS in PN.fShuntList
+                for L in PN.LineList
+                    for T in PN.TransformerList
+                        for i = 1:sizeI
+                            push!(pNod_constr, @NLconstraint(OPF,
+                            sum(p_g[g] for g in G.id) == sigPp_i[B.i] - sigPm_i[B.i]))
+                        end
+                    end
+                end
+            end
+        end
+    end
+    =#
+
+#=
     # 49
     qNod_constr = Array{JuMP.ConstraintRef, 1}()
     for i = 1:sizeI
@@ -215,4 +236,5 @@ function create_model(PN::PNetwork)
         sum(q_g[g] for g in G.id) - Ld.ql[B.i] - (- fS.bFS[B.i] - sS.bCS0[B.i])*v_i[B.i]^2 - sum(qO_e[m] for m in L.iO) - sum(qD_e[n] for n in L.iD)
         - sum(qO_f[x] for x in T.iO)- sum(qD_f[y] for y in T.iD) == sigQp_i[B.i] - sigQm_i[B.i]))
     end
+    =#
 end
