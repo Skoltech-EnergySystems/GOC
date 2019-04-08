@@ -86,6 +86,9 @@ end
 
 # LOAD
 mutable struct Load
+    i::Int64
+    id::Int64
+    status::Bool
     pL::Float64
     qL::Float64
 
@@ -95,6 +98,9 @@ end
 Load constructor from Data
 """
 function load_constr(Ld, Data, s)
+    Ld.i = Data[1]
+    Ld.id = parse(Int,replace(strip(Data[2]), "'" => ""))
+    Ld.status = Data[3]
     Ld.pL = 0.0
     Ld.qL = 0.0
     if Data[3] == true
@@ -118,18 +124,22 @@ end
 
 # FIXED SHUNT
 mutable struct FixedShunt
+    i::Int
     gFS::Float64
     bFS::Float64
+    stat::Bool
 
-    FixedShunt(Data) = fShunt_constr(new(), Data, s)
+    FixedShunt(Data,s) = fShunt_constr(new(), Data, s)
 end
 """
 Fixed shunt constructor
 """
 function fShunt_constr(fS, Data, s)
+    fS.i = Data[1]
     fS.gFS = 0.0
     fS.bFS = 0.0
-    if Data[3] == true
+    fS.stat = Data[3]
+    if fS.stat == true
         fS.gFS += Data[4] ./ s
         fS.bFS += Data[5] ./ s
     end
@@ -142,9 +152,11 @@ in challenge 1 it is empty so an empty list created otherwise error "access to u
 function fShunt_init!(Data, PN)
   n = size(Data)[1]
   PN.fShuntList = []
+  PN.get_fShunt_index = Dict{Int, Int}()
   for i = 1:n
     B = FixedShunt(Data[i,:], PN.s) # new instance
     push!(PN.fShuntList, B) # stored in list
+    PN.get_fShunt_index[S.i] = length(PN.fShuntList)
   end
 end
 
@@ -352,11 +364,11 @@ Stores SwitchedShunts into array
 function sShunt_init!(Data, PN)
   n = size(Data)[1]
   PN.sShuntList = []
-  PN.get_shunt_index = Dict{Int, Int}()
+  PN.get_sShunt_index = Dict{Int, Int}()
   for i = 1:n
     S = SwitchedShunt(Data[i,:], PN.s)
     push!(PN.sShuntList, S)
-    PN.get_shunt_index[S.i] = length(PN.sShuntList)
+    PN.get_sShunt_index[S.i] = length(PN.sShuntList)
   end
 end
 
@@ -376,6 +388,7 @@ mutable struct PNetwork
 
     # fixed shunt data
     fShuntList::Array{FixedShunt}  # array of Fixed Shunts
+    get_fShunt_index::Dict{Int, Int}
 
     # generator data
     caliG::Set # set of generators
@@ -397,7 +410,7 @@ mutable struct PNetwork
     # switched shunt
     sShuntList::Array{SwitchedShunt} # array of Switched Shunts
     # corresondance between switched shunt index e and its index in the list
-    get_shunt_index::Dict{Int, Int}
+    get_sShunt_index::Dict{Int, Int}
 
     PNetwork() = constr_network(new())
 end
