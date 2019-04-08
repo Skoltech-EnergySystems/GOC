@@ -426,6 +426,13 @@ function constr_network(PN)
     PN.E = Set(Array{Tuple{Int64, Int64, Int64}, 1}())
     PN.caliF = Set(Array{Tuple{Int64, Int64, Int64}, 1}())
     PN.F = Set(Array{Tuple{Int64, Int64, Int64}, 1}())
+    PN.BusList = []
+    PN.LoadList = []
+    PN.fShuntList = []
+    PN.GeneratorList = []
+    PN.LineList = []
+    PN.TransformerList = []
+    PN.sShuntList = []
 
     return PN
 end

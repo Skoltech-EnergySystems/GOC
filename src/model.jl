@@ -79,17 +79,17 @@ function create_model(PN::PNetwork)
     t_g_constr = Array{JuMP.ConstraintRef, 1}() # 5
     diffG = setdiff(PN.caliG, PN.G)
 
-    for g in PN.G
-        i = PN.gen_ind_I[g] # index of generator[g] in the list of all generators
+    sizeG = length(PN.caliG);
+    for i in 1:sizeG # index of generator[g] in the list of all generators
 # 33
-        push!(p_g, @variable(OPF, lower_bound=PN.GeneratorList[i].p_min, upper_bound=PN.GeneratorList[i].p_max, base_name="p_$g"))
+        push!(p_g, @variable(OPF, lower_bound=PN.GeneratorList[i].p_min, upper_bound=PN.GeneratorList[i].p_max, base_name="p_$i"))
 # 35
-        push!(q_g, @variable(OPF, lower_bound=PN.GeneratorList[i].q_min, upper_bound=PN.GeneratorList[i].q_max, base_name="q_$g"))
+        push!(q_g, @variable(OPF, lower_bound=PN.GeneratorList[i].q_min, upper_bound=PN.GeneratorList[i].q_max, base_name="q_$i"))
 # 4, 5
-        push!(t_gh, @variable(OPF, [h=1:PN.GeneratorList[i].N], lower_bound=0, base_name="t_$g"))
+        push!(t_gh, @variable(OPF, [h=1:PN.GeneratorList[i].N], lower_bound=0, base_name="t_$i"))
         push!(t_g_constr, @constraint(OPF, sum(t_gh[end]) == 1))
 # 34, 36
-        if g in diffG
+        if i in diffG
             push!(p_g_constr, @constraint(OPF, p_g[end] == 0))
             push!(q_g_constr, @constraint(OPF, q_g[end] == 0))
         else
@@ -97,7 +97,7 @@ function create_model(PN::PNetwork)
             push!(p_g_constr, @constraint(OPF, p_g[end] == PN.GeneratorList[i].p' * t_gh[end]))
         end
 # 2
-        push!(c_g, @variable(OPF, base_name="c_$g"))
+        push!(c_g, @variable(OPF, base_name="c_$i"))
         push!(c_g_constr, @constraint(OPF, c_g[end] == PN.GeneratorList[i].c' * t_gh[end]))
     end
 
@@ -118,8 +118,8 @@ function create_model(PN::PNetwork)
         push!(v_i, @variable(OPF, lower_bound=PN.BusList[i].v_min, upper_bound=PN.BusList[i].v_max, base_name="v_$i"))
 
 # 37
-        if i in keys(PN.get_shunt_index)
-            push!(bCS_i, @variable(OPF, lower_bound=PN.sShuntList[PN.get_shunt_index[i]].bCS_min, upper_bound=PN.sShuntList[PN.get_shunt_index[i]].bCS_max, base_name="bCS_$(PN.get_shunt_index[i])"))
+        if i in keys(PN.get_sShunt_index)
+            push!(bCS_i, @variable(OPF, lower_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_min, upper_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_max, base_name="bCS_$(PN.get_sShunt_index[i])"))
         end
 # 47 48 50 51
         push!(sigPp_i, @variable(OPF, lower_bound=0, base_name="sigPp_$i") )
@@ -170,7 +170,6 @@ function create_model(PN::PNetwork)
     qO_f = Array{JuMP.VariableRef, 1}()
     pD_f = Array{JuMP.VariableRef, 1}()
     qD_f = Array{JuMP.VariableRef, 1}()
-    #
 
     pO_f_constr = Array{JuMP.ConstraintRef, 1}()
     qO_f_constr = Array{JuMP.ConstraintRef, 1}()
@@ -197,14 +196,14 @@ function create_model(PN::PNetwork)
         push!(qD_f_constr, @NLconstraint(OPF,
         qD_f[end] == -T.b * v_i[T.iD]^2 + (T.b / T.tau * cos(theta_i[T.iD] - theta_i[T.iO]) - T.g / T.tau * sin(theta_i[T.iD] - theta_i[T.iO])) * v_i[T.iO] * v_i[T.iD] ))
     end
-    
+
     # Nodal equations
     # 46
     pNod_constr = Array{JuMP.ConstraintRef, 1}()
     for i = 1:sizeI
         push!(pNod_constr, @NLconstraint(OPF,
             sum(p_g[g] for g in 1:sizeG if PN.GeneratorList[g].i==i) - sum(PN.LoadList[l].pL for l in 1:length(PN.LoadList) if PN.LoadList[l].i==i)
-            #- sum(PN.fShuntList[f].gFS*v_i[f]^2 for f in 1:length(PN.fShuntList) if PN.fShuntList[f].i==i) # no fixed shunts in Challenge 1
+            - sum(PN.fShuntList[f].gFS*v_i[f]^2 for f in 1:length(PN.fShuntList) if PN.fShuntList[f].i==i) # no fixed shunts in Challenge 1
             - sum(pO_e[oe] for oe in 1:length(PN.LineList) if PN.LineList[oe].iO==i) - sum(pD_e[de] for de in 1:length(PN.LineList) if PN.LineList[de].iD==i)
             - sum(pO_f[of] for of in 1:length(PN.TransformerList) if PN.TransformerList[of].iO==i)
             - sum(pD_f[df] for df in 1:length(PN.TransformerList) if PN.TransformerList[df].iD==i)
@@ -251,7 +250,5 @@ function create_model(PN::PNetwork)
         push!(PowerD_f_constr, @NLconstraint(OPF, sqrt(pD_f[end]^2 + qD_f[end]^2) <= T.s_max + sigS_f[end]))
     end
 
-    # model for contingencies
 
-    return OPF
 end

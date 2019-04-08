@@ -1,8 +1,11 @@
 # push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/src/");
 # push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/");
-
 using Revise
-
+function MyJulia1(InFile1, InFile2, InFile3, InFile4, TimeLimitInSeconds, ScoringMethod, NetworkModel)
+        rawFile = InFile1
+        contFile = InFile2
+        costsFile = InFile3
+        inlFile = InFile4
 # paths manipulations
 # Julia 1.1.0
 #=
@@ -35,7 +38,7 @@ data_paths = Dict(:raw => joinpath(data_path , "case.raw"),
                     :contin => joinpath(data_path , "case.con"),
                     :costs => joinpath(data_path , "case.rop"),
                     :inl => joinpath(data_path , "case.inl")
-                    );
+);
 
 # parsing
 PN, mainData, costsData, continData = parser(data_paths);
@@ -43,3 +46,4 @@ PN, mainData, costsData, continData = parser(data_paths);
 
 # include("model.jl")
 opf = create_model(PN)
+end
