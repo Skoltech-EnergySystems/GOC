@@ -197,6 +197,31 @@ function create_model(PN::PNetwork)
         push!(qD_f_constr, @NLconstraint(OPF,
         qD_f[end] == -T.b * v_i[T.iD]^2 + (T.b / T.tau * cos(theta_i[T.iD] - theta_i[T.iO]) - T.g / T.tau * sin(theta_i[T.iD] - theta_i[T.iO])) * v_i[T.iO] * v_i[T.iD] ))
     end
+    
+    # Nodal equations
+    # 46
+    pNod_constr = Array{JuMP.ConstraintRef, 1}()
+    for i = 1:sizeI
+        push!(pNod_constr, @NLconstraint(OPF,
+            sum(p_g[g] for g in 1:sizeG if PN.GeneratorList[g].i==i) - sum(PN.LoadList[l].pL for l in 1:length(PN.LoadList) if PN.LoadList[l].i==i)
+            #- sum(PN.fShuntList[f].gFS*v_i[f]^2 for f in 1:length(PN.fShuntList) if PN.fShuntList[f].i==i) # no fixed shunts in Challenge 1
+            - sum(pO_e[oe] for oe in 1:length(PN.LineList) if PN.LineList[oe].iO==i) - sum(pD_e[de] for de in 1:length(PN.LineList) if PN.LineList[de].iD==i)
+            - sum(pO_f[of] for of in 1:length(PN.TransformerList) if PN.TransformerList[of].iO==i)
+            - sum(pD_f[df] for df in 1:length(PN.TransformerList) if PN.TransformerList[df].iD==i)
+            == sigPp_i[i] - sigPm_i[i]))
+    end
+
+    # 49
+    qNod_constr = Array{JuMP.ConstraintRef, 1}()
+    for i = 1:sizeI
+        push!(qNod_constr, @NLconstraint(OPF,
+            sum(q_g[g] for g in 1:sizeG if PN.GeneratorList[g].i==i) - sum(PN.LoadList[l].qL for l in 1:length(PN.LoadList) if PN.LoadList[l].i==i)
+            - sum(-PN.sShuntList[s].bCS0*v_i[s]^2 for s in 1:length(PN.sShuntList) if PN.sShuntList[s].i==i) # no fixed shunts in Challenge 1
+            - sum(qO_e[oe] for oe in 1:length(PN.LineList) if PN.LineList[oe].iO==i) - sum(qD_e[de] for de in 1:length(PN.LineList) if PN.LineList[de].iD==i)
+            - sum(qO_f[of] for of in 1:length(PN.TransformerList) if PN.TransformerList[of].iO==i)
+            - sum(qD_f[df] for df in 1:length(PN.TransformerList) if PN.TransformerList[df].iD==i)
+            == sigQp_i[i] - sigQm_i[i]))
+    end
 
     # ∀ e ∈ E
     # Line current ratings: 52-54
