@@ -405,6 +405,15 @@ end
 Power Network constructor
 """
 function constr_network(PN)
+    PN.BusList = []
+    PN.LoadList = []
+    PN.fShuntList = []
+    PN.GeneratorList = []
+    PN.LineList = []
+    PN.TransformerList = []
+    PN.sShuntList = []
+
+
     PN.caliI = Set(Array{Int64, 1}())
     PN.caliA = Set(Array{Int64, 1}())
     PN.caliG = Set(Array{Tuple{Int64, Int64}, 1}())

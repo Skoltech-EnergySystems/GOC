@@ -130,8 +130,18 @@ function create_model(PN::PNetwork)
     end
 
 
-
+size = maximum(PN.caliI);
+@variable(OPF, theta[1:size])
+@variable(OPF, v[1:size])
+pO_e = Array{JuMP.VariableRef, 1}()
+pO_constr = Array{JuMP.ConstraintRef, 1}()
 # ∀ e ∈ E
+for L in PN.LineList
+    push!(pO_e, @variable(OPF, base_name="pO_e_$(L.e)"))
+# 38
+    push!(pO_constr, @NLconstraint(OPF,
+    pO_e[end] == L.g * v[L.iO]^2 + (-L.g * cos(theta[L.iO] - theta[L.iD]) - L.b * sin(theta[L.iO] - theta[L.iD])) * v[L.iO] * v[L.iD] ))
+end
 
 
 # ∀ f ∈ F

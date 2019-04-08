@@ -16,7 +16,7 @@ while goc != "GOC"
     cur_path, goc = splitdir(cur_path)
 end
 proj_path = joinpath(cur_path, goc);
-# 
+#
 code_path = joinpath(proj_path, "src");
 data_path = joinpath(proj_path, "data");
 
@@ -41,5 +41,5 @@ data_paths = Dict(:raw => joinpath(data_path , "case.raw"),
 PN, mainData, costsData, continData = parser(data_paths);
 
 
-# include("model.jl")
+include("model.jl")
 opf = create_model(PN)
