@@ -1,18 +1,4 @@
-
-
-# To be construct 
-
-
-
 # Writing into the file "solution1.txt"
-Bus_I = OPF[1]
-V_I = OPF[2]
-Theta_I = OPF[3]
-BCS_I = OPF[4]
-Gen_I = OPF[5]
-Gen_ID = OPF[6]
-P_G = OPF[7]
-Q_G = OPF[8]
 
 NBus = size(Bus_I,1)
 sSh_ind = [s.i for s in PN.sShuntList]

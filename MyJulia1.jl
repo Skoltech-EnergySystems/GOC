@@ -61,4 +61,8 @@ Bus_I, V_I, Theta_I, BCS_I, Gen_I, Gen_ID, P_G, Q_G = @time create_model(PN)
 # println("\n ... solving the model")
 # res = @time optimize!(opf)
 
+### ====> Writing solution1.txt
+println("\n ... WRITING solution1.txt")
+@time  include("write_solution1.jl")
+
 end
