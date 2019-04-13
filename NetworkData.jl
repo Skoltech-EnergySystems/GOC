@@ -86,8 +86,8 @@ end
 
 # LOAD
 mutable struct Load
-    i::Int64
-    id::Int64
+    i::Int
+    # id::AbstractString
     status::Bool
     pL::Float64
     qL::Float64
@@ -99,7 +99,8 @@ Load constructor from Data
 """
 function load_constr(Ld, Data, s)
     Ld.i = Data[1]
-    Ld.id = parse(Int,replace(strip(Data[2]), "'" => ""))
+    # Ld.id = parse(Int,replace(strip(Data[2]), "'" => ""))
+    # Ld.id = Data[2]
     Ld.status = Data[3]
     Ld.pL = 0.0
     Ld.qL = 0.0

@@ -1,5 +1,5 @@
 ### Script
-include("MyJulia1.jl");
+# include("MyJulia1.jl");
 #cd("C:/Users/Ильгиз/Documents/Документы_Ильгиз/Skoltech/Grid Competition/Code/julia-knitro-Phase-0-Arun")
 
 # initial model (small)
@@ -18,14 +18,18 @@ MyJulia1(rawFile, genFile, contFile)
 
 MyJulia1(rawFile, genFile, contFile)
 =#
+
 ## Large model
-  InFile1 = "case.raw"
-  InFile2 = "case.con"
-  InFile3 = "case.inl"
-  InFile4 = "case.rop"
+InFile1 = "case.raw"
+InFile2 = "case.con"
+InFile3 = "case.inl"
+InFile4 = "case.rop"
 
-  TimeLimitInSeconds = 600
-  ScoringMethod = 1
-  NetworkModel = "Network"
+TimeLimitInSeconds = 600
+ScoringMethod = 1
+NetworkModel = "Network"
 
-  MyJulia1(InFile1, InFile2, InFile3, InFile4, TimeLimitInSeconds, ScoringMethod, NetworkModel)
+
+
+include("MyJulia1.jl")
+MyJulia1(InFile1, InFile2, InFile3, InFile4, TimeLimitInSeconds, ScoringMethod, NetworkModel)

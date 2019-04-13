@@ -1,14 +1,14 @@
 using DelimitedFiles
 using DataFrames
 using CSV: read
-include("NetworkData.jl")
+# include("NetworkData.jl")
 
 """
 main parsing for all files and initialization of Power Network structure and Contingencies
 in: pathes -- dictionary with pathes to files
 
 TO DO
-paralellize function calls. 
+paralellize function calls.
 """
 function parser(pathes)
   # pathes to files
