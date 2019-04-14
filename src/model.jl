@@ -3,7 +3,7 @@ using Ipopt
 include("NetworkData.jl")
 
 
-function create_model(PN::PNetwork)
+function create_model(PN::PNetwork, continData::ContingenciesStruct)
 
     # OPF = Model(solver=IpoptSolver())
     OPF = Model(with_optimizer(Ipopt.Optimizer))
@@ -82,17 +82,21 @@ function create_model(PN::PNetwork)
     sizeG = length(PN.caliG);
     for i in 1:sizeG # index of generator[g] in the list of all generators
 # 33
-        push!(p_g, @variable(OPF, lower_bound=PN.GeneratorList[i].p_min, upper_bound=PN.GeneratorList[i].p_max, base_name="p_$i"))
+        # push!(p_g, @variable(OPF, lower_bound=PN.GeneratorList[i].p_min, upper_bound=PN.GeneratorList[i].p_max, base_name="p_$i"))
 # 35
-        push!(q_g, @variable(OPF, lower_bound=PN.GeneratorList[i].q_min, upper_bound=PN.GeneratorList[i].q_max, base_name="q_$i"))
+        # push!(q_g, @variable(OPF, lower_bound=PN.GeneratorList[i].q_min, upper_bound=PN.GeneratorList[i].q_max, base_name="q_$i"))
 # 4, 5
         push!(t_gh, @variable(OPF, [h=1:PN.GeneratorList[i].N], lower_bound=0, base_name="t_$i"))
         push!(t_g_constr, @constraint(OPF, sum(t_gh[end]) == 1))
 # 34, 36
         if i in diffG
+            push!(q_g, @variable(OPF, base_name="q_$i"))
+            push!(p_g, @variable(OPF, base_name="p_$i"))
             push!(p_g_constr, @constraint(OPF, p_g[end] == 0))
             push!(q_g_constr, @constraint(OPF, q_g[end] == 0))
         else
+            push!(q_g, @variable(OPF, lower_bound=PN.GeneratorList[i].q_min, upper_bound=PN.GeneratorList[i].q_max, base_name="q_$i"))
+            push!(p_g, @variable(OPF, lower_bound=PN.GeneratorList[i].p_min, upper_bound=PN.GeneratorList[i].p_max, base_name="p_$i"))
 # 3
             push!(p_g_constr, @constraint(OPF, p_g[end] == PN.GeneratorList[i].p' * t_gh[end]))
         end
@@ -249,6 +253,161 @@ function create_model(PN::PNetwork)
         # 57
         push!(PowerD_f_constr, @NLconstraint(OPF, sqrt(pD_f[end]^2 + qD_f[end]^2) <= T.s_max + sigS_f[end]))
     end
+
+    ####CONTINGENCIES
+    ###GENERATORS CONTINGENCIES
+
+
+
+    p_g_kg = Array{JuMP.VariableRef, 1}()
+    q_g_kg = Array{JuMP.VariableRef, 1}()
+    # t_gh_kg = Array{Array{JuMP.VariableRef, 1}, 1}()
+    c_g_kg = Array{JuMP.VariableRef, 1}()
+
+    # lenG = length(PN.G)
+    p_g_constr_kg = Array{JuMP.ConstraintRef, 1}() # 33-34
+    q_g_constr_kg = Array{JuMP.ConstraintRef, 1}() # 35-36
+    c_g_constr_kg = Array{JuMP.ConstraintRef, 1}() # 2
+    # t_g_constr_kg = Array{JuMP.ConstraintRef, 1}() # 5
+
+
+    v_i_kg = Array{JuMP.VariableRef, 1}()
+    theta_i_kg = Array{JuMP.VariableRef, 1}()
+    bCS_i_kg = Array{JuMP.VariableRef, 1}()
+    sigPp_i_kg = Array{JuMP.VariableRef, 1}()
+    sigPm_i_kg = Array{JuMP.VariableRef, 1}()
+    sigQp_i_kg = Array{JuMP.VariableRef, 1}()
+    sigQm_i_kg = Array{JuMP.VariableRef, 1}()
+
+
+    sigP_diff_kg = Array{JuMP.ConstraintRef, 1}() # 46
+    sigQ_diff_kg = Array{JuMP.ConstraintRef, 1}() # 49
+
+    caliK = length(continData.genCont)
+    for j in 1:caliK
+        bad_generator = (parse(Int64, continData.genCont[j]), 1)
+        lenG = length(PN.G)
+        PN.G  = setdiff(PN.G, Set([bad_generator]))
+        diffG = setdiff(PN.caliG, PN.G)
+        # diffG = push!(diffG, bad_generator)
+
+
+        sizeG = length(PN.caliG);
+        for i in 1:sizeG # index of generator[g] in the list of all generators
+
+    # 4, 5
+            # push!(t_gh_kg, @variable(OPF, [h=1:PN.GeneratorList[i].N], lower_bound=0, base_name="t_$i"*"_$j"*"_g"))
+            # push!(t_g_constr_kg, @constraint(OPF, sum(t_gh_kg[end]) == 1))
+    # 60, 62
+
+    ##DONE Above!!!!!!!!!!!!!!
+            if i in diffG
+                push!(p_g_kg, @variable(OPF, base_name="q_$i"*"_$j"*"_g"))
+                push!(q_g_kg, @variable(OPF, base_name="q_$i"*"_$j"*"_g"))
+                push!(p_g_constr_kg, @constraint(OPF, p_g_kg[end] == 0))
+                push!(q_g_constr_kg, @constraint(OPF, q_g_kg[end] == 0))
+            else
+        # 59
+                push!(p_g_kg, @variable(OPF, lower_bound=PN.GeneratorList[i].p_min, upper_bound=PN.GeneratorList[i].p_max, base_name="q_$i"*"_$j"*"_g"))
+        # 61
+                push!(q_g_kg, @variable(OPF, lower_bound=PN.GeneratorList[i].q_min, upper_bound=PN.GeneratorList[i].q_max, base_name="q_$i"*"_$j"*"_g"))
+    # 3
+                # push!(p_g_constr_kg, @constraint(OPF, p_g_kg[end] == PN.GeneratorList[i].p' * t_gh_kg[end]))
+            end
+    # DONE
+            push!(c_g_kg, @variable(OPF, base_name="c_$i"*"_$j"*"_g"))
+            push!(c_g_constr_kg, @constraint(OPF, c_g_kg[end] == PN.GeneratorList[i].c' * t_gh_kg[end]))
+        end
+
+    # ∀ i ∈ I, j ∈ J
+
+    #DONE !!!!!!! ABOVE
+        for i in PN.caliI
+    # 58
+            push!(v_i_kg, @variable(OPF, lower_bound=PN.BusList[i].vK_min, upper_bound=PN.BusList[i].vK_max, base_name="v_$i"*"_$j"*"_g"))
+
+    # 63
+            if i in keys(PN.get_sShunt_index)
+                push!(bCS_i_kg, @variable(OPF, lower_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_min, upper_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_max, base_name="bCS_$(PN.get_sShunt_index[i])"*"_$j_g"))
+            end
+    # 73 74 76 77
+            #DONE ABOVE
+            push!(sigPp_i_kg, @variable(OPF, lower_bound=0, base_name="sigPp_$i"*"_$j"*"_g") )
+            push!(sigPm_i_kg, @variable(OPF, lower_bound=0, base_name="sigPm_$i"*"_$j"*"_g") )
+            push!(sigQp_i_kg, @variable(OPF, lower_bound=0, base_name="sigQp_$i"*"_$j"*"_g") )
+            push!(sigQm_i_kg, @variable(OPF, lower_bound=0, base_name="sigQm_$i"*"_$j"*"_g") )
+    #
+            # push!(sigP_diff, @constraint(OPF, sigPp_i[end] - sigPm_i[end] == )  )
+
+        end
+
+        #DONE ABOVE. Waintig for 46 and 49 constraints.
+        sizeI = maximum(PN.caliI);
+        @variable(OPF, theta_i[1:sizeI])
+        @variable(OPF, v_i[1:sizeI])
+
+        # Line flow: 78 - 80
+        pO_e_kl = Array{JuMP.VariableRef, 1}()
+        qO_e_kl = Array{JuMP.VariableRef, 1}()
+        pD_e_kl = Array{JuMP.VariableRef, 1}()
+        qD_e_kl = Array{JuMP.VariableRef, 1}()
+
+        pO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+        qO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+        pD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+        qD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+
+
+    end
+
+    #for j in 1:length(continData.genCont)
+
+    #end
+
+
+    # ∀ e ∈ E
+    # Line current ratings:78-80
+    for k in 1:continData.lineCont
+
+        #LineList_k = PN.LineList
+        left = continData.lineCont[k][1]
+        right = continData.lineCont[k][2]
+        for k in 1:length(PN.LineList)
+            if PN.LineList[k].iO == left && PN.LineList[k].iD == right
+                LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
+        end
+
+        sigS_e_kl = Array{JuMP.VariableRef, 1}()
+        CurrentO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+        CurrentD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+
+
+        for L in LineList_k
+            # 78(53)
+            push!(sigS_e_kl, @variable(OPF, lower_bound=0, base_name="sigS_$(L.e)_kl") )
+            # 79(52)
+            push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) ≤ L.R_max*v_ik[L.iO] + sigS_e_kl[end]))
+            # 80(54)
+            push!(CurrentD_e_constr_kl, @NLconstraint(OPF, sqrt(pD_e_kl[end]^2 + qD_e_kl[end]^2) ≤ L.R_max*v_ik[L.iD] + sigS_e_kl[end]))
+        end
+    end
+
+    # there were no contigencies for transformers
+
+    # ∀ f ∈ F
+    # Transformer power ratings: 81-83
+    sigS_f_k = Array{JuMP.VariableRef, 1}()
+    PowerO_f_constr_k = Array{JuMP.ConstraintRef, 1}()
+    PowerD_f_constr_k = Array{JuMP.ConstraintRef, 1}()
+    for T in PN.TransformerList
+        # 81(56)
+        push!(sigS_f_k, @variable(OPF, lower_bound=0, base_name="sigS_$(T.f)_k") )
+        # 82(55)
+        push!(PowerO_f_constr_k, @NLconstraint(OPF, sqrt(pO_f_k[end]^2 + qO_f_k[end]^2) <= T.s_max + sigS_f_k[end]))
+        # 83(57)
+        push!(PowerD_f_const_k, @NLconstraint(OPF, sqrt(pD_f_k[end]^2 + qD_f_k[end]^2) <= T.s_max + sigS_f_k[end]))
+    end
+
 
 
 end
