@@ -1,7 +1,7 @@
 using JuMP
 using Ipopt
 include("NetworkData.jl")
-
+include("DataStructures.jl")
 
 function create_model(PN::PNetwork, continData::ContingenciesStruct)
 
@@ -343,8 +343,8 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
 
         #DONE ABOVE. Waintig for 46 and 49 constraints.
         sizeI = maximum(PN.caliI);
-        @variable(OPF, theta_i[1:sizeI])
-        @variable(OPF, v_i[1:sizeI])
+        # @variable(OPF, theta_i[1:sizeI])
+        # @variable(OPF, v_i[1:sizeI])
 
         # Line flow: 78 - 80
         pO_e_kl = Array{JuMP.VariableRef, 1}()
@@ -375,6 +375,7 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
         for k in 1:length(PN.LineList)
             if PN.LineList[k].iO == left && PN.LineList[k].iD == right
                 LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
+            end
         end
 
         sigS_e_kl = Array{JuMP.VariableRef, 1}()
