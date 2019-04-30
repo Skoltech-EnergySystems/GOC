@@ -49,6 +49,8 @@ mutable struct Bus
     vK_max::Float64 # EVHI
     vK_min::Float64 # EVLO
 
+    shunt_opt::Float64
+
     Bus(Data) = bus_constr(new(), Data)
 end
 """

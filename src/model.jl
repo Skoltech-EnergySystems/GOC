@@ -81,6 +81,9 @@ function create_model(PN::PNetwork)
 
     for g in PN.G
         i = PN.gen_ind_I[g] # index of generator[g] in the list of all generators
+    # when i wtire this constraint i set some limits like 2 <= p_g <= 10
+    # and then i add constraints for inactive generators like p_g == 0 which is a constradiction
+    # with the constrain above.
 # 33
         push!(p_g, @variable(OPF, lower_bound=PN.GeneratorList[i].p_min, upper_bound=PN.GeneratorList[i].p_max, base_name="p_$g"))
 # 35

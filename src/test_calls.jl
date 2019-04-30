@@ -41,5 +41,7 @@ data_paths = Dict(:raw => joinpath(data_path , "case.raw"),
 PN, mainData, costsData, continData = parser(data_paths);
 
 
-include("model.jl")
-opf = create_model(PN)
+# include("model.jl")
+# opf = create_model(PN)
+
+shunt_idx = [S.i for S in PN.sShuntList ]
