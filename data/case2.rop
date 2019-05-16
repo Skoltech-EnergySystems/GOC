@@ -1,0 +1,44 @@
+0 / Bus Voltage Attributes
+0 / Adjustable Bus Shunts
+0 / Bus Loads
+0 / Adjustable Bus Load Tables
+0 / Generator Dispatch Units
+           9,      1,      0,      1
+          16,      1,      0,      2
+0 / Active Power Dispatch Tables
+           1,        771.8,       231.54,        1.000,    2,    0,      1
+           2,       444.45,       133.33,        1.000,    2,    0,      2
+           3,        888.9,       266.67,        1.000,    2,    0,      3
+0 / Generator Reserve Units
+0 / Generation Reactive Capability
+0 / Adjustable Branch Reactance
+0 / Piece-wise Linear Cost Tables
+   1,    'Linear   1' ,    6
+            0,            0
+      339.592,  6840.151113
+      447.644,  9063.264323
+      555.696, 11333.078381
+      663.748, 13649.592472
+        771.8, 16012.808435
+   2,    'Linear   2' ,    6
+            0,            0
+      195.558,   1161.36574
+      257.781,  1532.582207
+      320.004,  1905.489932
+      382.227,  2280.088771
+       444.45,  2656.378694
+   3,    'Linear   3' ,    6
+            0,            0
+      391.116,  3337.054882
+      515.562,  4404.478541
+      640.008,  5477.536394
+      764.454,  6556.228033
+        888.9,  7640.553457
+0 / Piecewise Quadratic Cost Curve Tables
+0 / Polynomial & Exponential Cost Curve Tables
+0 / Period Reserves
+0 / Branch Flows
+0 / Interface Flows
+0 / Linear Constraint Dependencies
+0
+Q
