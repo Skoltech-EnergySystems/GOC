@@ -42,6 +42,6 @@ PN, mainData, costsData, continData = parser(data_paths);
 
 
 # include("model.jl")
-# opf = create_model(PN)
+opf = create_model(PN)
 
-shunt_idx = [S.i for S in PN.sShuntList ]
+# shunt_idx = [S.i for S in PN.sShuntList ]
