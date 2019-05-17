@@ -21,11 +21,11 @@ code_path = joinpath(proj_path, "src");
 data_path = joinpath(proj_path, "data");
 
 # Revise tracking
-includet(joinpath(code_path , "Parsing.jl"));
+includet(joinpath(code_path , "parsing.jl"));
 includet(joinpath(code_path , "DataStructures.jl"));
 includet(joinpath(code_path , "NetworkData.jl"));
 includet(joinpath(code_path , "model.jl"));
-Revise.track(joinpath(code_path , "Parsing.jl"));
+Revise.track(joinpath(code_path , "parsing.jl"));
 Revise.track(joinpath(code_path , "DataStructures.jl"));
 Revise.track(joinpath(code_path , "NetworkData.jl"));
 Revise.track(joinpath(code_path , "model.jl"));
