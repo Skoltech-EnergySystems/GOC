@@ -316,7 +316,7 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
             end
     # DONE
             push!(c_g_kg, @variable(OPF, base_name="c_$i"*"_$j"*"_g"))
-            push!(c_g_constr_kg, @constraint(OPF, c_g_kg[end] == PN.GeneratorList[i].c' * t_gh_kg[end]))
+            # push!(c_g_constr_kg, @constraint(OPF, c_g_kg[end] == PN.GeneratorList[i].c' * t_gh_kg[end]))
         end
 
     # ∀ i ∈ I, j ∈ J
