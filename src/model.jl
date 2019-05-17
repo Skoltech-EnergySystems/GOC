@@ -1,6 +1,7 @@
 using JuMP
 using Ipopt
 include("NetworkData.jl")
+include("DataStructures.jl")
 
 
 function create_model(PN::PNetwork)
