@@ -1,7 +1,7 @@
 # push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/src/");
 # push!(LOAD_PATH, "/Users/ivan/Documents/PhD/GOC/");
 
-# Adding packages Revise and Ipopt
+# deleting comment for local undone
 using Revise
 using Ipopt
 
