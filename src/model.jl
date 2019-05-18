@@ -257,8 +257,6 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
     ####CONTINGENCIES
     ###GENERATORS CONTINGENCIES
 
-
-
     p_g_kg = Array{JuMP.VariableRef, 1}()
     q_g_kg = Array{JuMP.VariableRef, 1}()
     # t_gh_kg = Array{Array{JuMP.VariableRef, 1}, 1}()
@@ -328,7 +326,8 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
 
     # 63
             if i in keys(PN.get_sShunt_index)
-                push!(bCS_i_kg, @variable(OPF, lower_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_min, upper_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_max, base_name="bCS_$(PN.get_sShunt_index[i])"*"_$j_g"))
+                # push!(bCS_i_kg, @variable(OPF, lower_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_min, upper_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_max, base_name="bCS_$(PN.get_sShunt_index[i])"*"_$j_g"))
+                push!(bCS_i_kg, @variable(OPF, lower_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_min, upper_bound=PN.sShuntList[PN.get_sShunt_index[i]].bCS_max))
             end
     # 73 74 76 77
             #DONE ABOVE
@@ -345,20 +344,19 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
         sizeI = maximum(PN.caliI);
         # @variable(OPF, theta_i[1:sizeI])
         # @variable(OPF, v_i[1:sizeI])
-
-        # Line flow: 78 - 80
-        pO_e_kl = Array{JuMP.VariableRef, 1}()
-        qO_e_kl = Array{JuMP.VariableRef, 1}()
-        pD_e_kl = Array{JuMP.VariableRef, 1}()
-        qD_e_kl = Array{JuMP.VariableRef, 1}()
-
-        pO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
-        qO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
-        pD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
-        qD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
-
-
     end
+
+    # Line flow: 78 - 80
+    pO_e_kl = Array{JuMP.VariableRef, 1}()
+    qO_e_kl = Array{JuMP.VariableRef, 1}()
+    pD_e_kl = Array{JuMP.VariableRef, 1}()
+    qD_e_kl = Array{JuMP.VariableRef, 1}()
+
+    pO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+    qO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+    pD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+    qD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+
 
     #for j in 1:length(continData.genCont)
 
@@ -367,26 +365,53 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
 
     # ∀ e ∈ E
     # Line current ratings:78-80
-    for k in 1:continData.lineCont
+    LineList_cont = [];
+    for k in 1:length(continData.lineCont)
 
         #LineList_k = PN.LineList
         left = continData.lineCont[k][1]
         right = continData.lineCont[k][2]
         for k in 1:length(PN.LineList)
             if PN.LineList[k].iO == left && PN.LineList[k].iD == right
-                LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
+                LineList_cont = [LineList_cont;PN.LineList[k:k]]
+                # LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
+            # elseif PN.LineList[k].iO == right && PN.LineList[k].iD == left
+            #     LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
             end
+        end
+
+        LineList_k = setdiff(PN.LineList, LineList_cont); # Lines that are active in contingency
+
+        for L in LineList_k
+            push!(pO_e_kl, @variable(OPF, base_name="pO_e_$(L.e)_kl"))
+            push!(qO_e_kl, @variable(OPF, base_name="qO_e_$(L.e)_kl"))
+            push!(pD_e_kl, @variable(OPF, base_name="pD_e_$(L.e)_kl"))
+            push!(qD_e_kl, @variable(OPF, base_name="qD_e_$(L.e)_kl"))
+            # 64
+            push!(pO_e_constr_kl, @NLconstraint(OPF,
+            pO_e_kl[end] == L.g * v_i[L.iO]^2 + (-L.g * cos(theta_i[L.iO] - theta_i[L.iD]) - L.b * sin(theta_i[L.iO] - theta_i[L.iD])) * v_i[L.iO] * v_i[L.iD] ))
+            # 39
+            push!(qO_e_constr_kl, @NLconstraint(OPF,
+            qO_e_kl[end] == -(L.b + L.bCH/2) * v_i[L.iO]^2 + (L.b * cos(theta_i[L.iO] - theta_i[L.iD]) - L.g * sin(theta_i[L.iO] - theta_i[L.iD])) * v_i[L.iO] * v_i[L.iD] ))
+            # 40
+            push!(pD_e_constr_kl, @NLconstraint(OPF,
+            pD_e_kl[end] == L.g * v_i[L.iD]^2 + (-L.g * cos(theta_i[L.iD] - theta_i[L.iO]) - L.b * sin(theta_i[L.iD] - theta_i[L.iO])) * v_i[L.iO] * v_i[L.iD] ))
+            # 41
+            push!(qD_e_constr_kl, @NLconstraint(OPF,
+            qD_e_kl[end] == -(L.b + L.bCH/2) * v_i[L.iD]^2 + (L.b * cos(theta_i[L.iD] - theta_i[L.iO]) - L.g * sin(theta_i[L.iD] - theta_i[L.iO])) * v_i[L.iO] * v_i[L.iD] ))
         end
 
         sigS_e_kl = Array{JuMP.VariableRef, 1}()
         CurrentO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
         CurrentD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
 
-
         for L in LineList_k
-            # 78(53)
+            # 79(53)
             push!(sigS_e_kl, @variable(OPF, lower_bound=0, base_name="sigS_$(L.e)_kl") )
-            # 79(52)
+            # 78(52)
+            # definition for pO_e_kl is missing
+            push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2) <=0 ))
+            push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) <=0 ))
             push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) ≤ L.R_max*v_ik[L.iO] + sigS_e_kl[end]))
             # 80(54)
             push!(CurrentD_e_constr_kl, @NLconstraint(OPF, sqrt(pD_e_kl[end]^2 + qD_e_kl[end]^2) ≤ L.R_max*v_ik[L.iD] + sigS_e_kl[end]))
