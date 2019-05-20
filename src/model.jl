@@ -269,8 +269,8 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
     # t_g_constr_kg = Array{JuMP.ConstraintRef, 1}() # 5
 
 
-    v_i_kg = Array{JuMP.VariableRef, 1}()
-    theta_i_kg = Array{JuMP.VariableRef, 1}()
+    v_ik = Array{JuMP.VariableRef, 1}()
+    theta_ik = Array{JuMP.VariableRef, 1}()
     bCS_i_kg = Array{JuMP.VariableRef, 1}()
     sigPp_i_kg = Array{JuMP.VariableRef, 1}()
     sigPm_i_kg = Array{JuMP.VariableRef, 1}()
@@ -322,7 +322,7 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
     #DONE !!!!!!! ABOVE
         for i in PN.caliI
     # 58
-            push!(v_i_kg, @variable(OPF, lower_bound=PN.BusList[i].vK_min, upper_bound=PN.BusList[i].vK_max, base_name="v_$i"*"_$j"*"_g"))
+            push!(v_ik, @variable(OPF, lower_bound=PN.BusList[i].vK_min, upper_bound=PN.BusList[i].vK_max, base_name="v_$i"*"_$j"*"_g"))
 
     # 63
             if i in keys(PN.get_sShunt_index)
@@ -363,76 +363,76 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
     #end
 
 
-    # ∀ e ∈ E
-    # Line current ratings:78-80
-    LineList_cont = [];
-    for k in 1:length(continData.lineCont)
-
-        #LineList_k = PN.LineList
-        left = continData.lineCont[k][1]
-        right = continData.lineCont[k][2]
-        for k in 1:length(PN.LineList)
-            if PN.LineList[k].iO == left && PN.LineList[k].iD == right
-                LineList_cont = [LineList_cont;PN.LineList[k:k]]
-                # LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
-            # elseif PN.LineList[k].iO == right && PN.LineList[k].iD == left
-            #     LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
-            end
-        end
-
-        LineList_k = setdiff(PN.LineList, LineList_cont); # Lines that are active in contingency
-
-        for L in LineList_k
-            push!(pO_e_kl, @variable(OPF, base_name="pO_e_$(L.e)_kl"))
-            push!(qO_e_kl, @variable(OPF, base_name="qO_e_$(L.e)_kl"))
-            push!(pD_e_kl, @variable(OPF, base_name="pD_e_$(L.e)_kl"))
-            push!(qD_e_kl, @variable(OPF, base_name="qD_e_$(L.e)_kl"))
-            # 64
-            push!(pO_e_constr_kl, @NLconstraint(OPF,
-            pO_e_kl[end] == L.g * v_i[L.iO]^2 + (-L.g * cos(theta_i[L.iO] - theta_i[L.iD]) - L.b * sin(theta_i[L.iO] - theta_i[L.iD])) * v_i[L.iO] * v_i[L.iD] ))
-            # 39
-            push!(qO_e_constr_kl, @NLconstraint(OPF,
-            qO_e_kl[end] == -(L.b + L.bCH/2) * v_i[L.iO]^2 + (L.b * cos(theta_i[L.iO] - theta_i[L.iD]) - L.g * sin(theta_i[L.iO] - theta_i[L.iD])) * v_i[L.iO] * v_i[L.iD] ))
-            # 40
-            push!(pD_e_constr_kl, @NLconstraint(OPF,
-            pD_e_kl[end] == L.g * v_i[L.iD]^2 + (-L.g * cos(theta_i[L.iD] - theta_i[L.iO]) - L.b * sin(theta_i[L.iD] - theta_i[L.iO])) * v_i[L.iO] * v_i[L.iD] ))
-            # 41
-            push!(qD_e_constr_kl, @NLconstraint(OPF,
-            qD_e_kl[end] == -(L.b + L.bCH/2) * v_i[L.iD]^2 + (L.b * cos(theta_i[L.iD] - theta_i[L.iO]) - L.g * sin(theta_i[L.iD] - theta_i[L.iO])) * v_i[L.iO] * v_i[L.iD] ))
-        end
-
-        sigS_e_kl = Array{JuMP.VariableRef, 1}()
-        CurrentO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
-        CurrentD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
-
-        for L in LineList_k
-            # 79(53)
-            push!(sigS_e_kl, @variable(OPF, lower_bound=0, base_name="sigS_$(L.e)_kl") )
-            # 78(52)
-            # definition for pO_e_kl is missing
-            push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2) <=0 ))
-            push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) <=0 ))
-            push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) ≤ L.R_max*v_ik[L.iO] + sigS_e_kl[end]))
-            # 80(54)
-            push!(CurrentD_e_constr_kl, @NLconstraint(OPF, sqrt(pD_e_kl[end]^2 + qD_e_kl[end]^2) ≤ L.R_max*v_ik[L.iD] + sigS_e_kl[end]))
-        end
-    end
-
-    # there were no contigencies for transformers
-
-    # ∀ f ∈ F
-    # Transformer power ratings: 81-83
-    sigS_f_k = Array{JuMP.VariableRef, 1}()
-    PowerO_f_constr_k = Array{JuMP.ConstraintRef, 1}()
-    PowerD_f_constr_k = Array{JuMP.ConstraintRef, 1}()
-    for T in PN.TransformerList
-        # 81(56)
-        push!(sigS_f_k, @variable(OPF, lower_bound=0, base_name="sigS_$(T.f)_k") )
-        # 82(55)
-        push!(PowerO_f_constr_k, @NLconstraint(OPF, sqrt(pO_f_k[end]^2 + qO_f_k[end]^2) <= T.s_max + sigS_f_k[end]))
-        # 83(57)
-        push!(PowerD_f_const_k, @NLconstraint(OPF, sqrt(pD_f_k[end]^2 + qD_f_k[end]^2) <= T.s_max + sigS_f_k[end]))
-    end
+    # # ∀ e ∈ E
+    # # Line current ratings:78-80
+    # LineList_cont = [];
+    # for k in 1:length(continData.lineCont)
+    #
+    #     #LineList_k = PN.LineList
+    #     left = continData.lineCont[k][1]
+    #     right = continData.lineCont[k][2]
+    #     for k in 1:length(PN.LineList)
+    #         if PN.LineList[k].iO == left && PN.LineList[k].iD == right
+    #             LineList_cont = [LineList_cont;PN.LineList[k:k]]
+    #             # LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
+    #         # elseif PN.LineList[k].iO == right && PN.LineList[k].iD == left
+    #         #     LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
+    #         end
+    #     end
+    #
+    #     LineList_k = setdiff(PN.LineList, LineList_cont); # Lines that are active in contingency
+    #
+    #     for L in PN.LineList_k
+    #         push!(pO_e_kl, @variable(OPF, base_name="pO_e_$(L.e)_kl"))
+    #         push!(qO_e_kl, @variable(OPF, base_name="qO_e_$(L.e)_kl"))
+    #         push!(pD_e_kl, @variable(OPF, base_name="pD_e_$(L.e)_kl"))
+    #         push!(qD_e_kl, @variable(OPF, base_name="qD_e_$(L.e)_kl"))
+    #         # 64
+    #         push!(pO_e_constr_kl, @NLconstraint(OPF,
+    #         pO_e_kl[end] == L.g * v_ik[L.iO]^2 + (-L.g * cos(theta_ik[L.iO] - theta_ik[L.iD]) - L.b * sin(theta_ik[L.iO] - theta_ik[L.iD])) * v_ik[L.iO] * v_ik[L.iD] ))
+    #         # 39
+    #         push!(qO_e_constr_kl, @NLconstraint(OPF,
+    #         qO_e_kl[end] == -(L.b + L.bCH/2) * v_ik[L.iO]^2 + (L.b * cos(theta_ik[L.iO] - theta_ik[L.iD]) - L.g * sin(theta_ik[L.iO] - theta_ik[L.iD])) * v_ik[L.iO] * v_ik[L.iD] ))
+    #         # 40
+    #         push!(pD_e_constr_kl, @NLconstraint(OPF,
+    #         pD_e_kl[end] == L.g * v_ik[L.iD]^2 + (-L.g * cos(theta_ik[L.iD] - theta_ik[L.iO]) - L.b * sin(theta_ik[L.iD] - theta_ik[L.iO])) * v_ik[L.iO] * v_ik[L.iD] ))
+    #         # 41
+    #         push!(qD_e_constr_kl, @NLconstraint(OPF,
+    #         qD_e_kl[end] == -(L.b + L.bCH/2) * v_ik[L.iD]^2 + (L.b * cos(theta_ik[L.iD] - theta_ik[L.iO]) - L.g * sin(theta_ik[L.iD] - theta_ik[L.iO])) * v_ik[L.iO] * v_ik[L.iD] ))
+    #     end
+    #
+    #     sigS_e_kl = Array{JuMP.VariableRef, 1}()
+    #     CurrentO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+    #     CurrentD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+    #
+    #     for L in LineList_k
+    #         # 79(53)
+    #         push!(sigS_e_kl, @variable(OPF, lower_bound=0, base_name="sigS_$(L.e)_kl") )
+    #         # 78(52)
+    #         # definition for pO_e_kl is missing
+    #         push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2) <=0 ))
+    #         push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) <=0 ))
+    #         push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) ≤ L.R_max*v_ik[L.iO] + sigS_e_kl[end]))
+    #         # 80(54)
+    #         push!(CurrentD_e_constr_kl, @NLconstraint(OPF, sqrt(pD_e_kl[end]^2 + qD_e_kl[end]^2) ≤ L.R_max*v_ik[L.iD] + sigS_e_kl[end]))
+    #     end
+    # end
+    #
+    # # there were no contigencies for transformers
+    #
+    # # ∀ f ∈ F
+    # # Transformer power ratings: 81-83
+    # sigS_f_k = Array{JuMP.VariableRef, 1}()
+    # PowerO_f_constr_k = Array{JuMP.ConstraintRef, 1}()
+    # PowerD_f_constr_k = Array{JuMP.ConstraintRef, 1}()
+    # for T in PN.TransformerList
+    #     # 81(56)
+    #     push!(sigS_f_k, @variable(OPF, lower_bound=0, base_name="sigS_$(T.f)_k") )
+    #     # 82(55)
+    #     push!(PowerO_f_constr_k, @NLconstraint(OPF, sqrt(pO_f_k[end]^2 + qO_f_k[end]^2) <= T.s_max + sigS_f_k[end]))
+    #     # 83(57)
+    #     push!(PowerD_f_const_k, @NLconstraint(OPF, sqrt(pD_f_k[end]^2 + qD_f_k[end]^2) <= T.s_max + sigS_f_k[end]))
+    # end
 
 
 
