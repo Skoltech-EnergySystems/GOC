@@ -285,8 +285,8 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
     for j in 1:caliK
         bad_generator = (parse(Int64, continData.genCont[j]), 1)
         lenG = length(PN.G)
-        PN.G  = setdiff(PN.G, Set([bad_generator]))
-        diffG = setdiff(PN.caliG, PN.G)
+        PN.G  = setdiff(PN.G, Set([bad_generator])) # Generators that are online in the contringency case
+        diffG = setdiff(PN.caliG, PN.G) # Generators that are switched in the contingency case
         # diffG = push!(diffG, bad_generator)
 
 
@@ -313,7 +313,7 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
                 # push!(p_g_constr_kg, @constraint(OPF, p_g_kg[end] == PN.GeneratorList[i].p' * t_gh_kg[end]))
             end
     # DONE
-            push!(c_g_kg, @variable(OPF, base_name="c_$i"*"_$j"*"_g"))
+            # push!(c_g_kg, @variable(OPF, base_name="c_$i"*"_$j"*"_g"))
             # push!(c_g_constr_kg, @constraint(OPF, c_g_kg[end] == PN.GeneratorList[i].c' * t_gh_kg[end]))
         end
 
@@ -323,6 +323,7 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
         for i in PN.caliI
     # 58
             push!(v_ik, @variable(OPF, lower_bound=PN.BusList[i].vK_min, upper_bound=PN.BusList[i].vK_max, base_name="v_$i"*"_$j"*"_g"))
+            push!(theta_ik, @variable(OPF, base_name="theta_$i"*"_$j"*"_g"))
 
     # 63
             if i in keys(PN.get_sShunt_index)
@@ -359,64 +360,61 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
 
 
     #for j in 1:length(continData.genCont)
-
     #end
 
 
-    # # ∀ e ∈ E
-    # # Line current ratings:78-80
-    # LineList_cont = [];
-    # for k in 1:length(continData.lineCont)
-    #
-    #     #LineList_k = PN.LineList
-    #     left = continData.lineCont[k][1]
-    #     right = continData.lineCont[k][2]
-    #     for k in 1:length(PN.LineList)
-    #         if PN.LineList[k].iO == left && PN.LineList[k].iD == right
-    #             LineList_cont = [LineList_cont;PN.LineList[k:k]]
-    #             # LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
-    #         # elseif PN.LineList[k].iO == right && PN.LineList[k].iD == left
-    #         #     LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
-    #         end
-    #     end
-    #
-    #     LineList_k = setdiff(PN.LineList, LineList_cont); # Lines that are active in contingency
-    #
-    #     for L in PN.LineList_k
-    #         push!(pO_e_kl, @variable(OPF, base_name="pO_e_$(L.e)_kl"))
-    #         push!(qO_e_kl, @variable(OPF, base_name="qO_e_$(L.e)_kl"))
-    #         push!(pD_e_kl, @variable(OPF, base_name="pD_e_$(L.e)_kl"))
-    #         push!(qD_e_kl, @variable(OPF, base_name="qD_e_$(L.e)_kl"))
-    #         # 64
-    #         push!(pO_e_constr_kl, @NLconstraint(OPF,
-    #         pO_e_kl[end] == L.g * v_ik[L.iO]^2 + (-L.g * cos(theta_ik[L.iO] - theta_ik[L.iD]) - L.b * sin(theta_ik[L.iO] - theta_ik[L.iD])) * v_ik[L.iO] * v_ik[L.iD] ))
-    #         # 39
-    #         push!(qO_e_constr_kl, @NLconstraint(OPF,
-    #         qO_e_kl[end] == -(L.b + L.bCH/2) * v_ik[L.iO]^2 + (L.b * cos(theta_ik[L.iO] - theta_ik[L.iD]) - L.g * sin(theta_ik[L.iO] - theta_ik[L.iD])) * v_ik[L.iO] * v_ik[L.iD] ))
-    #         # 40
-    #         push!(pD_e_constr_kl, @NLconstraint(OPF,
-    #         pD_e_kl[end] == L.g * v_ik[L.iD]^2 + (-L.g * cos(theta_ik[L.iD] - theta_ik[L.iO]) - L.b * sin(theta_ik[L.iD] - theta_ik[L.iO])) * v_ik[L.iO] * v_ik[L.iD] ))
-    #         # 41
-    #         push!(qD_e_constr_kl, @NLconstraint(OPF,
-    #         qD_e_kl[end] == -(L.b + L.bCH/2) * v_ik[L.iD]^2 + (L.b * cos(theta_ik[L.iD] - theta_ik[L.iO]) - L.g * sin(theta_ik[L.iD] - theta_ik[L.iO])) * v_ik[L.iO] * v_ik[L.iD] ))
-    #     end
-    #
-    #     sigS_e_kl = Array{JuMP.VariableRef, 1}()
-    #     CurrentO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
-    #     CurrentD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
-    #
-    #     for L in LineList_k
-    #         # 79(53)
-    #         push!(sigS_e_kl, @variable(OPF, lower_bound=0, base_name="sigS_$(L.e)_kl") )
-    #         # 78(52)
-    #         # definition for pO_e_kl is missing
-    #         push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2) <=0 ))
-    #         push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) <=0 ))
-    #         push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) ≤ L.R_max*v_ik[L.iO] + sigS_e_kl[end]))
-    #         # 80(54)
-    #         push!(CurrentD_e_constr_kl, @NLconstraint(OPF, sqrt(pD_e_kl[end]^2 + qD_e_kl[end]^2) ≤ L.R_max*v_ik[L.iD] + sigS_e_kl[end]))
-    #     end
-    # end
+    # ∀ e ∈ E
+    # Line current ratings:78-80
+    LineList_cont = [];
+    for k in 1:length(continData.lineCont)
+
+        LineList_k = PN.LineList
+        left = continData.lineCont[k][1]
+        right = continData.lineCont[k][2]
+        for k in 1:length(PN.LineList)
+            if PN.LineList[k].iO == left && PN.LineList[k].iD == right
+                LineList_cont = [LineList_cont;PN.LineList[k:k]]
+                # LineList_k = setdiff(PN.LineList, PN.LineList[k:k])
+            end
+        end
+        # print(size(LineList_cont)) # Size is correct
+
+        LineList_k = setdiff(PN.LineList, LineList_cont); # Lines that are active in the contingency case
+
+        for L in LineList_k
+            # print(size(LineList_k)) # Size is correct
+            push!(pO_e_kl, @variable(OPF, base_name="pO_e_$(L.e)_kl"))
+            push!(qO_e_kl, @variable(OPF, base_name="qO_e_$(L.e)_kl"))
+            push!(pD_e_kl, @variable(OPF, base_name="pD_e_$(L.e)_kl"))
+            push!(qD_e_kl, @variable(OPF, base_name="qD_e_$(L.e)_kl"))
+
+            # 64
+            push!(pO_e_constr_kl, @NLconstraint(OPF,
+            pO_e_kl[end] == L.g * v_ik[L.iO]^2 + (-L.g * cos(theta_ik[L.iO] - theta_ik[L.iD]) - L.b * sin(theta_ik[L.iO] - theta_ik[L.iD])) * v_ik[L.iO] * v_ik[L.iD] ))
+            # 65
+            push!(qO_e_constr_kl, @NLconstraint(OPF,
+            qO_e_kl[end] == -(L.b + L.bCH/2) * v_ik[L.iO]^2 + (L.b * cos(theta_ik[L.iO] - theta_ik[L.iD]) - L.g * sin(theta_ik[L.iO] - theta_ik[L.iD])) * v_ik[L.iO] * v_ik[L.iD] ))
+            # 66
+            push!(pD_e_constr_kl, @NLconstraint(OPF,
+            pD_e_kl[end] == L.g * v_ik[L.iD]^2 + (-L.g * cos(theta_ik[L.iD] - theta_ik[L.iO]) - L.b * sin(theta_ik[L.iD] - theta_ik[L.iO])) * v_ik[L.iO] * v_ik[L.iD] ))
+            # 67
+            push!(qD_e_constr_kl, @NLconstraint(OPF,
+            qD_e_kl[end] == -(L.b + L.bCH/2) * v_ik[L.iD]^2 + (L.b * cos(theta_ik[L.iD] - theta_ik[L.iO]) - L.g * sin(theta_ik[L.iD] - theta_ik[L.iO])) * v_ik[L.iO] * v_ik[L.iD] ))
+        end
+
+        sigS_e_kl = Array{JuMP.VariableRef, 1}()
+        CurrentO_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+        CurrentD_e_constr_kl = Array{JuMP.ConstraintRef, 1}()
+
+        for L in LineList_k
+            # 79
+            push!(sigS_e_kl, @variable(OPF, lower_bound=0, base_name="sigS_$(L.e)_kl") )
+            # 78
+            push!(CurrentO_e_constr_kl, @NLconstraint(OPF, sqrt(pO_e_kl[end]^2 + qO_e_kl[end]^2) ≤ L.R_max*v_ik[L.iO] + sigS_e_kl[end]))
+            # 80
+            push!(CurrentD_e_constr_kl, @NLconstraint(OPF, sqrt(pD_e_kl[end]^2 + qD_e_kl[end]^2) ≤ L.R_max*v_ik[L.iD] + sigS_e_kl[end]))
+        end
+    end
     #
     # # there were no contigencies for transformers
     #
@@ -434,6 +432,12 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
     #     push!(PowerD_f_const_k, @NLconstraint(OPF, sqrt(pD_f_k[end]^2 + qD_f_k[end]^2) <= T.s_max + sigS_f_k[end]))
     # end
 
-
-
+    # Generator Reactive Power Contingency Response
+    #(93)
+    for i in 1:sizeG
+        if i in PN.G
+            push!(QV_upper_constr, @constraint(OPF, (q_g_kg[end] - PN.GeneratorList[i].q_min)*(v_ik[end] - v_i[end]) <= 0))
+            push!(QV_lower_constr, @constraint(OPF, (q_g_kg[end] - PN.GeneratorList[i].q_max)*(v_ik[end] - v_i[end]) <= 0))
+        end
+    end
 end
