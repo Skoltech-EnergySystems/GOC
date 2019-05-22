@@ -416,7 +416,7 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
         end
     end
     #
-    # # there were no contigencies for transformers
+    # # there were no contigencies for transformers (but might be included in the future)
     #
     # # ∀ f ∈ F
     # # Transformer power ratings: 81-83
@@ -431,6 +431,20 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
     #     # 83(57)
     #     push!(PowerD_f_const_k, @NLconstraint(OPF, sqrt(pD_f_k[end]^2 + qD_f_k[end]^2) <= T.s_max + sigS_f_k[end]))
     # end
+
+    # # delta - powerfall in the case of contingency
+    @variable(OPF, delta_k)
+    @constraint(OPF, delta_k == sum(p_g_kg[i] for i = 1:sizeG) - sum(p_g[i] for i = 1:sizeG) )
+
+
+    # Generator Real Power Contingency Response
+    #(85)
+    for i in 1:sizeG
+        if i in PN.G
+            push!(Pdelt_upper_constr, @constraint(OPF, (p_g_kg[end] - PN.GeneratorList[i].p_min)*(p_g_kg[end] - (p_g[end] + PN.GeneratorList[i].alpha*delta_k)) <= 0))
+            push!(Pdelt_lower_constr, @constraint(OPF, (p_g_kg[end] - PN.GeneratorList[i].p_max)*(p_g_kg[end] - (p_g[end] + PN.GeneratorList[i].alpha*delta_k)) <= 0))
+        end
+    end
 
     # Generator Reactive Power Contingency Response
     #(93)
