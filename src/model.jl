@@ -454,4 +454,7 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
             push!(QV_lower_constr, @constraint(OPF, (q_g_kg[end] - PN.GeneratorList[i].q_max)*(v_ik[end] - v_i[end]) <= 0))
         end
     end
+
+    optimize!(OPF)
+    return OPF
 end
