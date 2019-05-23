@@ -455,6 +455,6 @@ function create_model(PN::PNetwork, continData::ContingenciesStruct)
         end
     end
 
-    optimize!(OPF)
+    # optimize!(OPF)
     return OPF
 end
